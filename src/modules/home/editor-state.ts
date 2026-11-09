@@ -63,6 +63,30 @@ export function setBrandColor(doc: PageDocument, key: BrandColorKey, value: stri
   return { ...doc, theme: { ...doc.theme, colors } }
 }
 
+export const MAX_SECTIONS = 20
+
+/** Cria uma seção de imagem antes do rodapé. Devolve o documento e o id da nova seção. */
+export function addImageSection(doc: PageDocument, name = 'Imagem Hiro 01'): { doc: PageDocument; id: string } {
+  const id = `imagem-${Date.now().toString(36)}`
+  const section: Section = {
+    id,
+    type: 'image-card',
+    name,
+    tone: 'light',
+    title: 'Título da imagem',
+    subtitle: 'Local ou detalhe',
+    imageUrl: '',
+    imageAlt: '',
+    action: { label: 'Saiba mais', href: '#contato' },
+    corner: { label: 'Abrir link', href: '#contato' },
+  }
+  const footerIndex = doc.sections.findIndex((s) => s.type === 'site-footer')
+  const sections = [...doc.sections]
+  if (footerIndex === -1) sections.push(section)
+  else sections.splice(footerIndex, 0, section)
+  return { doc: { ...doc, sections }, id }
+}
+
 export function setSeo(doc: PageDocument, seo: Partial<PageDocument['seo']>): PageDocument {
   return { ...doc, seo: { ...doc.seo, ...seo } }
 }

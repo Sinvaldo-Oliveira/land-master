@@ -163,3 +163,34 @@ test('gestor não acessa o editor do site', async ({ page }) => {
   await page.goto('/admin/site')
   await expect(page.getByRole('heading', { name: 'Área restrita ao seu perfil' })).toBeVisible()
 })
+
+test('cria a seção "Imagem Hiro 01" pela lista e a mostra na prévia', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+  // Ao criar, o painel da nova seção já abre com o nome definido
+  await expect(page.getByRole('heading', { level: 2, name: 'Imagem Hiro 01' })).toBeVisible()
+  await expect(page.getByLabel(/^Nome no painel/)).toHaveValue('Imagem Hiro 01')
+  await expect(preview(page).getByRole('heading', { level: 2, name: 'Título da imagem' })).toBeVisible()
+
+  // Voltando à lista, a seção aparece com o nome escolhido
+  await page.getByRole('button', { name: 'Todas as seções' }).click()
+  await expect(page.getByRole('button', { name: /^Imagem Hiro 01/ })).toBeVisible()
+})
+
+test('faixa de diferenciais na prévia tem 6 colunas no computador', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await page.getByRole('button', { name: /^Destaque principal/ }).click()
+  // O modelo traz 3 diferenciais; adiciona mais 3 para ocupar a linha inteira.
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Adicionar diferencial' }).click()
+
+  const columns = await preview(page).locator('ul.grid-cols-3').first().evaluate((ul) => getComputedStyle(ul).gridTemplateColumns.split(' ').length)
+  expect(columns).toBe(6)
+})

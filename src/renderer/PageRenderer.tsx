@@ -6,6 +6,7 @@ import { Cta } from './sections/Cta'
 import { Faq } from './sections/Faq'
 import { Features } from './sections/Features'
 import { Hero } from './sections/Hero'
+import { ImageCard } from './sections/ImageCard'
 import { SiteFooter } from './sections/SiteFooter'
 import { SiteHeader } from './sections/SiteHeader'
 import { Steps } from './sections/Steps'
@@ -69,6 +70,8 @@ function SectionView({ section, brandName }: { section: Section; brandName: stri
       return <Cta section={section} />
     case 'contact':
       return <Contact section={section} />
+    case 'image-card':
+      return <ImageCard section={section} />
     default:
       // Tipos desconhecidos (documento de versão futura ou corrompido) não quebram a página.
       return null

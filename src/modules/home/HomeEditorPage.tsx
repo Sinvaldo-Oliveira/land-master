@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowLeft, ArrowUp, ChevronRight, ExternalLink, Eye, EyeOff, Globe, Monitor, Palette, Smartphone, Tablet, TriangleAlert } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronRight, ExternalLink, Eye, EyeOff, Globe, Monitor, Palette, Plus, Smartphone, Tablet, TriangleAlert } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useBlocker } from 'react-router'
 import { useDocumentTitle } from '@/admin/hooks/useDocumentTitle'
@@ -31,7 +31,9 @@ import { validateDocument, type DocumentIssue } from './document-schema'
 import {
   contrastWarnings,
   getBrandName,
+  addImageSection,
   isMovable,
+  MAX_SECTIONS,
   moveSection,
   replaceSection,
   setBrandColor,
@@ -42,7 +44,7 @@ import {
 } from './editor-state'
 import { FieldsEditor } from './FieldsEditor'
 import { PreviewFrame, type PreviewDevice } from './PreviewFrame'
-import { sectionFields, sectionLabels, sectionSummary } from './section-fields'
+import { sectionFields, sectionName, sectionSummary } from './section-fields'
 
 const HOME_QUERY = ['site', 'home'] as const
 
@@ -220,7 +222,7 @@ function Editor({ initial }: { initial: HomePage }) {
                 <li key={i} className="list-disc">
                   {section ? (
                     <button type="button" className="font-medium underline underline-offset-2" onClick={() => selectSection(section)}>
-                      {sectionLabels[section.type]}
+                      {sectionName(section)}
                     </button>
                   ) : (
                     <button type="button" className="font-medium underline underline-offset-2" onClick={() => setSelection({ kind: 'identity' })}>
@@ -248,13 +250,19 @@ function Editor({ initial }: { initial: HomePage }) {
                 onSelect={selectSection}
                 onToggle={(id) => setDoc((d) => toggleHidden(d, id))}
                 onMove={(id, dir) => setDoc((d) => moveSection(d, id, dir))}
+                onAdd={() => {
+                  const { doc: next, id } = addImageSection(doc)
+                  setDoc(() => next)
+                  setSelection({ kind: 'section', id })
+                  setFocus(id)
+                }}
               />
             ) : selection.kind === 'identity' ? (
               <PanelShell title="Identidade e SEO" onBack={() => setSelection({ kind: 'list' })}>
                 <IdentityPanel doc={doc} onChange={setDoc} />
               </PanelShell>
             ) : selected ? (
-              <PanelShell title={sectionLabels[selected.type]} onBack={() => setSelection({ kind: 'list' })}>
+              <PanelShell title={sectionName(selected)} onBack={() => setSelection({ kind: 'list' })}>
                 {isMovable(selected) ? (
                   <div className="mb-5 flex items-center justify-between gap-3 rounded-admin-lg border border-admin-rule p-3 text-admin-sm">
                     <label htmlFor={`visible-${selected.id}`}>
@@ -364,12 +372,14 @@ function SectionList({
   onSelect,
   onToggle,
   onMove,
+  onAdd,
 }: {
   doc: PageDocument
   onIdentity: () => void
   onSelect: (section: Section) => void
   onToggle: (id: string) => void
   onMove: (id: string, direction: -1 | 1) => void
+  onAdd: () => void
 }) {
   return (
     // minmax(0,1fr): sem isso a coluna do grid cresce até o tamanho dos textos com reticências.
@@ -390,11 +400,17 @@ function SectionList({
       </button>
 
       <div>
-        <h2 className="mb-2 text-admin-xs font-medium tracking-wide text-admin-ink-3 uppercase">Seções da página</h2>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="text-admin-xs font-medium tracking-wide text-admin-ink-3 uppercase">Seções da página</h2>
+          <Button variant="secondary" size="sm" onClick={onAdd} disabled={doc.sections.length >= MAX_SECTIONS}>
+            <Plus aria-hidden="true" />
+            Nova seção de imagem
+          </Button>
+        </div>
         <ol className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {doc.sections.map((section, index) => {
             const movable = isMovable(section)
-            const label = sectionLabels[section.type]
+            const label = sectionName(section)
             const prev = doc.sections[index - 1]
             const next = doc.sections[index + 1]
             return (

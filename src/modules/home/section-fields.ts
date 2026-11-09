@@ -46,6 +46,7 @@ export const sectionLabels: Record<Section['type'], string> = {
   cta: 'Chamada para ação',
   contact: 'Contato',
   'site-footer': 'Rodapé',
+  'image-card': 'Imagem',
 }
 
 export const iconOptions: { value: IconName; label: string }[] = [
@@ -203,6 +204,23 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     },
     { kind: 'link', key: 'primary', label: 'Botão', optional: true },
   ],
+  'image-card': [
+    { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },
+    toneField,
+    { kind: 'text', key: 'title', label: 'Título', max: 60 },
+    { kind: 'text', key: 'subtitle', label: 'Subtítulo (ex.: local)', max: 120, optional: true },
+    {
+      kind: 'text',
+      key: 'imageUrl',
+      label: 'Endereço da imagem',
+      max: 500,
+      optional: true,
+      hint: 'Link https:// de uma imagem. Vazio = fundo de cor do tema.',
+    },
+    { kind: 'text', key: 'imageAlt', label: 'Descrição da imagem (acessibilidade)', max: 160, optional: true },
+    { kind: 'link', key: 'action', label: 'Botão' },
+    { kind: 'link', key: 'corner', label: 'Ícone no canto (link)', optional: true },
+  ],
   'site-footer': [
     { kind: 'textarea', key: 'description', label: 'Descrição', max: 240, rows: 2 },
     {
@@ -212,6 +230,11 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     },
     { kind: 'text', key: 'legal', label: 'Texto legal', max: 160 },
   ],
+}
+
+/** Nome da seção no painel: o nome dado pelo usuário, ou o rótulo do tipo. */
+export function sectionName(section: Section): string {
+  return section.name?.trim() || sectionLabels[section.type]
 }
 
 /** Resumo exibido na lista de seções (título da seção, quando houver). */

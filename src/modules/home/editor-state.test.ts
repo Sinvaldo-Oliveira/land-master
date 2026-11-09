@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { institucionalTemplate } from '@/renderer/templates/institucional'
 import { validateDocument } from './document-schema'
-import { HIGHLIGHT_ERROR, highlightInTitle } from './section-fields'
+import { HIGHLIGHT_ERROR, highlightInTitle, sectionName } from './section-fields'
 import {
+  addImageSection,
   contrastWarnings,
   getBrandName,
   moveSection,
@@ -96,5 +97,24 @@ describe('edição', () => {
     }
     const issues = validateDocument(broken)
     expect(issues).toContainEqual({ sectionId: 'hero', message: 'Título: preencha este campo.' })
+  })
+})
+
+describe('nova seção de imagem', () => {
+  it('cria "Imagem Hiro 01" antes do rodapé, com conteúdo padrão válido', () => {
+    const { doc: next, id } = addImageSection(doc)
+    const index = next.sections.findIndex((x) => x.id === id)
+    expect(next.sections[index + 1]?.type).toBe('site-footer')
+    expect(sectionName(next.sections[index]!)).toBe('Imagem Hiro 01')
+    expect(validateDocument(next)).toEqual([])
+  })
+
+  it('recusa imagem que não seja https e aponta a seção', () => {
+    const { doc: next, id } = addImageSection(doc)
+    const bad = {
+      ...next,
+      sections: next.sections.map((x) => (x.id === id && x.type === 'image-card' ? { ...x, imageUrl: 'http://exemplo.com/a.jpg' } : x)),
+    }
+    expect(validateDocument(bad).some((issue) => issue.sectionId === id)).toBe(true)
   })
 })

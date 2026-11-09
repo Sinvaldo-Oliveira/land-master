@@ -31,7 +31,7 @@ const anchor = z
   .regex(/^[a-z][a-z0-9-]{1,40}$/, 'Âncora: use letras minúsculas, números e hífen.')
   .optional()
 
-const base = { id: z.string().min(1), anchor, hidden: z.boolean().optional() }
+const base = { id: z.string().min(1), anchor, hidden: z.boolean().optional(), name: optionalText('Nome da seção', 60) }
 const brand = z.object({ name: text('Nome da empresa', 60), tagline: optionalText('Slogan', 80) })
 
 const colors = z.object({
@@ -126,6 +126,21 @@ const section = z.discriminatedUnion('type', [
       )
       .max(6, 'No máximo 6 canais.'),
     primary: link.optional(),
+  }),
+  z.object({
+    ...base,
+    type: z.literal('image-card'),
+    tone,
+    title: text('Título', 60),
+    subtitle: optionalText('Subtítulo', 120),
+    imageUrl: z
+      .string()
+      .trim()
+      .max(500, 'Endereço da imagem: use no máximo 500 caracteres.')
+      .refine((v) => v === '' || /^https:\/\/\S+$/.test(v), 'Imagem: use um endereço que comece com https://.'),
+    imageAlt: optionalText('Descrição da imagem', 160),
+    action: link,
+    corner: link.optional(),
   }),
   z.object({
     ...base,

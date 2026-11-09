@@ -55,7 +55,7 @@ export type Brand = { name: string; tagline?: string }
 export type SectionTone = 'light' | 'muted' | 'dark'
 
 /** hidden: a seção continua no documento, mas não é desenhada no site. */
-type SectionBase = { id: string; anchor?: string; hidden?: boolean }
+type SectionBase = { id: string; anchor?: string; hidden?: boolean; /** Nome exibido no painel (ex.: "Imagem Hiro 01"). */ name?: string }
 
 export type HeaderSection = SectionBase & {
   type: 'site-header'
@@ -141,6 +141,20 @@ export type ContactSection = SectionBase & {
   primary?: LinkItem
 }
 
+/** Cartão de imagem com inclinação 3D ao passar o mouse (efeito próprio, sem dependências extras). */
+export type ImageCardSection = SectionBase & {
+  type: 'image-card'
+  tone: SectionTone
+  title: string
+  subtitle?: string
+  /** Endereço https de uma imagem. Vazio = fundo de cor do tema. */
+  imageUrl: string
+  imageAlt?: string
+  action: LinkItem
+  /** Link do ícone no canto superior direito. */
+  corner?: LinkItem
+}
+
 export type FooterSection = SectionBase & {
   type: 'site-footer'
   brand: Brand
@@ -158,6 +172,7 @@ export type Section =
   | FaqSection
   | CtaSection
   | ContactSection
+  | ImageCardSection
   | FooterSection
 
 export type PageDocument = {
