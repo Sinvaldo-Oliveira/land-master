@@ -53,10 +53,10 @@ export function Hero({ section }: { section: HeroSection }) {
             <ul
               data-reveal
               style={revealDelay(4)}
-              className="mt-12 grid gap-4 border-t border-site-border pt-8 sm:grid-cols-3"
+              className="mt-12 flex flex-wrap gap-x-8 gap-y-5 border-t border-site-border pt-8"
             >
               {section.points.map((point) => (
-                <li key={point.label} className="flex items-center gap-3 text-[0.95rem] font-medium">
+                <li key={point.label} className="flex min-w-0 max-w-full items-center gap-3 text-[0.95rem] leading-snug font-medium">
                   <IconTile name={point.icon} className="size-10!" />
                   {point.label}
                 </li>
