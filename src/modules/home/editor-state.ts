@@ -80,11 +80,48 @@ export function addImageSection(doc: PageDocument, name = 'Imagem Hiro 01'): { d
     action: { label: 'Saiba mais', href: '#contato' },
     corner: { label: 'Abrir link', href: '#contato' },
   }
+  return insertBeforeFooter(doc, section)
+}
+
+/** Insere a seção antes do rodapé (ou no fim, se não houver rodapé). */
+function insertBeforeFooter(doc: PageDocument, section: Section): { doc: PageDocument; id: string } {
   const footerIndex = doc.sections.findIndex((s) => s.type === 'site-footer')
   const sections = [...doc.sections]
   if (footerIndex === -1) sections.push(section)
   else sections.splice(footerIndex, 0, section)
-  return { doc: { ...doc, sections }, id }
+  return { doc: { ...doc, sections }, id: section.id }
+}
+
+/**
+ * Cria o hero interativo ("Imagem Hiro 02") antes do rodapé.
+ * Posições padrão do quadro de 1440×810; mídias vazias até o usuário enviar.
+ */
+export function addInteractiveHeroSection(doc: PageDocument, name = 'Imagem Hiro 02'): { doc: PageDocument; id: string } {
+  return insertBeforeFooter(doc, {
+    id: `hero-interativo-${Date.now().toString(36)}`,
+    type: 'interactive-hero',
+    name,
+    eyebrow: 'Destaque',
+    title: 'Sua marca',
+    subtitle: 'Uma frase curta sobre o que você entrega',
+    captionLeft: 'Interação 3D',
+    captionRight: '@seuperfil',
+    plateUrl: '',
+    plateAlt: '',
+    clipUrl: '',
+    clipX: 510,
+    clipY: 255,
+    clipW: 435,
+    clipH: 450,
+    overlayUrl: '',
+    overlayX: 533,
+    overlayY: 288,
+    overlaySize: 360,
+    buttonLabel: 'APERTE/AQUI',
+    buttonX: 675,
+    buttonY: 720,
+    buttonSize: 75,
+  })
 }
 
 export function setSeo(doc: PageDocument, seo: Partial<PageDocument['seo']>): PageDocument {

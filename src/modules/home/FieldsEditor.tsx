@@ -121,6 +121,18 @@ function FieldControl({
       )
     }
 
+    case 'video':
+      return (
+        <ImageField
+          kind="video"
+          id={id}
+          label={field.label}
+          hint={field.hint}
+          value={typeof value === 'string' ? value : ''}
+          onChange={onChange}
+        />
+      )
+
     case 'image':
       return (
         <ImageField

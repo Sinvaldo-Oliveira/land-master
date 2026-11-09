@@ -10,6 +10,10 @@ import {
   CardBody,
   Dialog,
   DialogContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   DialogFooter,
   EmptyState,
   ErrorState,
@@ -32,6 +36,7 @@ import {
   contrastWarnings,
   getBrandName,
   addImageSection,
+  addInteractiveHeroSection,
   isMovable,
   MAX_SECTIONS,
   moveSection,
@@ -250,8 +255,8 @@ function Editor({ initial }: { initial: HomePage }) {
                 onSelect={selectSection}
                 onToggle={(id) => setDoc((d) => toggleHidden(d, id))}
                 onMove={(id, dir) => setDoc((d) => moveSection(d, id, dir))}
-                onAdd={() => {
-                  const { doc: next, id } = addImageSection(doc)
+                onAdd={(kind) => {
+                  const { doc: next, id } = kind === 'interactive-hero' ? addInteractiveHeroSection(doc) : addImageSection(doc)
                   setDoc(() => next)
                   setSelection({ kind: 'section', id })
                   setFocus(id)
@@ -379,7 +384,7 @@ function SectionList({
   onSelect: (section: Section) => void
   onToggle: (id: string) => void
   onMove: (id: string, direction: -1 | 1) => void
-  onAdd: () => void
+  onAdd: (kind: 'image-card' | 'interactive-hero') => void
 }) {
   return (
     // minmax(0,1fr): sem isso a coluna do grid cresce até o tamanho dos textos com reticências.
@@ -402,10 +407,18 @@ function SectionList({
       <div>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="text-admin-xs font-medium tracking-wide text-admin-ink-3 uppercase">Seções da página</h2>
-          <Button variant="secondary" size="sm" onClick={onAdd} disabled={doc.sections.length >= MAX_SECTIONS}>
-            <Plus aria-hidden="true" />
-            Nova seção de imagem
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm" disabled={doc.sections.length >= MAX_SECTIONS}>
+                <Plus aria-hidden="true" />
+                Nova seção
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onSelect={() => onAdd('image-card')}>Cartão de imagem 3D</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onAdd('interactive-hero')}>Hero interativo (mouse e botão)</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <ol className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {doc.sections.map((section, index) => {

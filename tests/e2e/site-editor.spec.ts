@@ -55,6 +55,12 @@ function fakeSiteBackend(page: Page) {
 
 const preview = (page: Page) => page.frameLocator('iframe[title="Pré-visualização do site"]')
 
+/** Abre o menu "Nova seção" e escolhe o tipo. */
+async function addSection(page: Page, option: 'Cartão de imagem 3D' | 'Hero interativo (mouse e botão)') {
+  await page.getByRole('button', { name: 'Nova seção' }).click()
+  await page.getByRole('menuitem', { name: option }).click()
+}
+
 test('admin cria a Home pelo modelo, edita com pré-visualização ao vivo e publica', async ({ page }, testInfo) => {
   await signInAs(page, 'admin')
   await fakeSiteBackend(page)
@@ -170,7 +176,7 @@ test('cria a seção "Imagem Hiro 01" pela lista e a mostra na prévia', async (
   await page.goto('/admin/site')
   await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
 
-  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+  await addSection(page, 'Cartão de imagem 3D')
   // Ao criar, o painel da nova seção já abre com o nome definido
   await expect(page.getByRole('heading', { level: 2, name: 'Imagem Hiro 01' })).toBeVisible()
   await expect(page.getByLabel(/^Nome no painel/)).toHaveValue('Imagem Hiro 01')
@@ -234,7 +240,7 @@ test('PNG enviado do dispositivo vira WebP, vai ao Storage e é registrado no ba
   const media = await fakeMediaBackend(page)
   await page.goto('/admin/site')
   await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
-  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+  await addSection(page, 'Cartão de imagem 3D')
 
   const png = await sampleImage(page, 'image/png')
   await page.getByLabel('Upload da imagem').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: png })
@@ -255,7 +261,7 @@ test('WebP enviado é aceito e também é gravado como WebP', async ({ page }) =
   const media = await fakeMediaBackend(page)
   await page.goto('/admin/site')
   await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
-  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+  await addSection(page, 'Cartão de imagem 3D')
 
   const webp = await sampleImage(page, 'image/webp')
   await page.getByLabel('Upload da imagem').setInputFiles({ name: 'foto.webp', mimeType: 'image/webp', buffer: webp })
@@ -270,7 +276,7 @@ test('arquivo com extensão de imagem mas conteúdo inválido é recusado sem en
   const media = await fakeMediaBackend(page)
   await page.goto('/admin/site')
   await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
-  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+  await addSection(page, 'Cartão de imagem 3D')
 
   await page.getByLabel('Upload da imagem').setInputFiles({
     name: 'falsa.png',
@@ -287,7 +293,7 @@ test('quando o bucket não existe, o erro explica o que fazer', async ({ page })
   await fakeMediaBackend(page, { bucketMissing: true })
   await page.goto('/admin/site')
   await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
-  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+  await addSection(page, 'Cartão de imagem 3D')
 
   await page.getByLabel('Upload da imagem').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: await sampleImage(page, 'image/png') })
   await expect(page.getByText(/migração do bucket site-media/)).toBeVisible()
@@ -312,4 +318,51 @@ test('destaque principal: imagem enviada substitui a ilustração e o tamanho é
   await expect(page.getByText('Tamanho da imagem: 60%')).toBeVisible()
   const width = await preview(page).locator('img').first().evaluate((el) => (el.parentElement!.parentElement as HTMLElement).style.width)
   expect(width).toBe('60%')
+})
+
+
+test('cria "Imagem Hiro 02" (hero interativo): botão aparece com a imagem e liga a sobreposição', async ({ page }, testInfo) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  const media = await fakeMediaBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await addSection(page, 'Hero interativo (mouse e botão)')
+  await expect(page.getByRole('heading', { level: 2, name: 'Imagem Hiro 02' })).toBeVisible()
+  await expect(preview(page).getByRole('heading', { level: 2, name: 'Sua marca' })).toBeVisible()
+  // Sem a imagem do botão, não há botão na prévia
+  await expect(preview(page).getByRole('button', { name: 'APERTE AQUI' })).toHaveCount(0)
+
+  await page.getByLabel(/^Imagem do botão/).setInputFiles({ name: 'capacete.png', mimeType: 'image/png', buffer: await sampleImage(page, 'image/png') })
+  await expect(page.getByRole('button', { name: 'Remover imagem' })).toBeVisible()
+  expect(media.registros.at(-1)).toMatchObject({ mime: 'image/webp' })
+
+  const button = preview(page).getByRole('button', { name: 'APERTE AQUI' })
+  await expect(button).toHaveAttribute('aria-pressed', 'false')
+  await button.click()
+  await expect(button).toHaveAttribute('aria-pressed', 'true')
+
+  // Título editável reflete na prévia
+  await page.getByLabel(/^Título .grande/).fill('Leila Marques')
+  await expect(preview(page).getByRole('heading', { level: 2, name: 'Leila Marques' })).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.waitForTimeout(2200) // entrada animada (~1,8 s)
+  await page.locator('iframe[title="Pré-visualização do site"]').screenshot({ path: testInfo.outputPath('hiro02-computador.png') })
+  await page.getByRole('radio', { name: 'Celular' }).click()
+  await page.waitForTimeout(800)
+  await page.locator('iframe[title="Pré-visualização do site"]').screenshot({ path: testInfo.outputPath('hiro02-celular.png') })
+})
+
+test('clipe do hero interativo recusa arquivo que não é vídeo', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  const media = await fakeMediaBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await addSection(page, 'Hero interativo (mouse e botão)')
+
+  await page.getByLabel(/^Clipe que segue o mouse/).setInputFiles({ name: 'clipe.mp4', mimeType: 'video/mp4', buffer: Buffer.from('não sou um vídeo') })
+  await expect(page.getByText('O conteúdo do arquivo não é um vídeo desse tipo.')).toBeVisible()
+  expect(media.uploads).toHaveLength(0)
 })

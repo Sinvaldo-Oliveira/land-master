@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSitePath, fitWithin, sniffImageType, storageErrorMessage } from './media'
+import { buildSitePath, fitWithin, sniffImageType, sniffVideoType, storageErrorMessage } from './media'
 
 const bytes = (...values: number[]) => new Uint8Array(values)
 const text = (value: string) => new Uint8Array([...value].map((c) => c.charCodeAt(0)))
@@ -43,5 +43,23 @@ describe('storageErrorMessage', () => {
 
   it('usa a mensagem genérica para o resto', () => {
     expect(storageErrorMessage({ message: 'boom' })).toMatch(/Verifique a conexão/)
+  })
+})
+
+describe('sniffVideoType', () => {
+  const text2 = (value: string) => [...value].map((c) => c.charCodeAt(0))
+  it('reconhece MP4 e WebM pela assinatura', () => {
+    expect(sniffVideoType(new Uint8Array([0, 0, 0, 24, ...text2('ftyp'), ...text2('isom')]))).toBe('video/mp4')
+    expect(sniffVideoType(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x9f]))).toBe('video/webm')
+  })
+  it('não confunde AVIF (imagem) com MP4 e recusa o resto', () => {
+    expect(sniffVideoType(new Uint8Array([0, 0, 0, 24, ...text2('ftyp'), ...text2('avif')]))).toBeNull()
+    expect(sniffVideoType(new Uint8Array(text2('<html>')))).toBeNull()
+  })
+})
+
+describe('storageErrorMessage: tipo não aceito', () => {
+  it('orienta a rodar o script de vídeo quando o bucket recusa o tipo', () => {
+    expect(storageErrorMessage({ message: 'mime type video/mp4 is not supported' })).toMatch(/RODAR_SO_VIDEO_site_media/)
   })
 })

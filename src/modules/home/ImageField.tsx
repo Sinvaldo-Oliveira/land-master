@@ -1,13 +1,14 @@
 import { ImageOff } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Field } from '@/admin/ui'
-import { checkImageFile, IMAGE_ACCEPT, uploadSiteImage } from './media'
+import { checkImageFile, checkVideoFile, IMAGE_ACCEPT, uploadSiteImage, uploadSiteVideo, VIDEO_ACCEPT } from './media'
 
 /**
  * Upload de imagem para uma seção. No computador abre o explorador de arquivos;
  * no celular, o sistema oferece a galeria e a câmera.
  */
 export function ImageField({
+  kind = 'image',
   id,
   label,
   value,
@@ -19,7 +20,10 @@ export function ImageField({
   value: string
   hint?: string | undefined
   onChange: (url: string) => void
+  /** 'video' envia o arquivo como está (MP4/WebM); 'image' converte para WebP. */
+  kind?: 'image' | 'video'
 }) {
+  const isVideo = kind === 'video'
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | undefined>()
   const [localPreview, setLocalPreview] = useState<string | null>(null)
@@ -34,7 +38,7 @@ export function ImageField({
 
   const pick = async (file: File) => {
     setError(undefined)
-    const problem = await checkImageFile(file)
+    const problem = await (isVideo ? checkVideoFile(file) : checkImageFile(file))
     if (problem) {
       setError(problem)
       return
@@ -43,7 +47,7 @@ export function ImageField({
     setLocalPreview(preview)
     setBusy(true)
     try {
-      const { url } = await uploadSiteImage(file)
+      const { url } = await (isVideo ? uploadSiteVideo(file) : uploadSiteImage(file))
       onChange(url)
       setLocalPreview(null)
       URL.revokeObjectURL(preview)
@@ -58,18 +62,24 @@ export function ImageField({
   }
 
   const shown = localPreview ?? (value.trim() !== '' ? value : null)
-  const defaultHint = 'WebP, JPEG, PNG ou AVIF, até 5 MB. Vira WebP compactado ao enviar. No celular você escolhe da galeria ou tira uma foto.'
+  const defaultHint = isVideo
+    ? 'MP4 ou WebM, até 5 MB.'
+    : 'WebP, JPEG, PNG ou AVIF, até 5 MB. Vira WebP compactado ao enviar. No celular você escolhe da galeria ou tira uma foto.'
 
   return (
     <Field label={label} htmlFor={id} error={error} hint={hint ?? defaultHint}>
       <div className="grid gap-3">
         <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-admin-lg border border-dashed border-admin-rule-strong bg-admin-sunken">
           {shown ? (
-            <img src={shown} alt="" className="size-full object-cover" />
+            isVideo ? (
+              <video src={shown} muted playsInline preload="metadata" className="size-full object-contain" />
+            ) : (
+              <img src={shown} alt="" className="size-full object-cover" />
+            )
           ) : (
             <span className="flex flex-col items-center gap-1 text-admin-sm text-admin-ink-3">
               <ImageOff aria-hidden="true" className="size-5" />
-              Nenhuma imagem: a seção usa a cor do tema
+              {isVideo ? 'Nenhum vídeo enviado' : 'Nenhuma imagem: a seção usa a cor do tema'}
             </span>
           )}
           {busy ? <span className="absolute inset-0 flex items-center justify-center bg-admin-card/70 text-admin-sm font-medium text-admin-ink">Enviando…</span> : null}
@@ -79,7 +89,7 @@ export function ImageField({
           ref={inputRef}
           id={id}
           type="file"
-          accept={IMAGE_ACCEPT}
+          accept={isVideo ? VIDEO_ACCEPT : IMAGE_ACCEPT}
           disabled={busy}
           aria-invalid={error ? true : undefined}
           onChange={(event) => {
@@ -99,7 +109,7 @@ export function ImageField({
               onChange('')
             }}
           >
-            Remover imagem
+            {isVideo ? 'Remover vídeo' : 'Remover imagem'}
           </Button>
         ) : null}
       </div>

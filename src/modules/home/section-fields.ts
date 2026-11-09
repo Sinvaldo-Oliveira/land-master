@@ -14,6 +14,7 @@ export type FieldDef =
   | { kind: 'textarea'; key: string; label: string; max: number; optional?: boolean; rows?: number; hint?: string }
   | { kind: 'link'; key: string; label: string; optional?: boolean }
   | { kind: 'image'; key: string; label: string; hint?: string }
+  | { kind: 'video'; key: string; label: string; hint?: string }
   | { kind: 'range'; key: string; label: string; min: number; max: number; step: number; unit: string }
   | { kind: 'icon'; key: string; label: string }
   | { kind: 'select'; key: string; label: string; options: { value: string; label: string }[] }
@@ -49,6 +50,7 @@ export const sectionLabels: Record<Section['type'], string> = {
   contact: 'Contato',
   'site-footer': 'Rodapé',
   'image-card': 'Imagem',
+  'interactive-hero': 'Hero interativo',
 }
 
 export const iconOptions: { value: IconName; label: string }[] = [
@@ -218,6 +220,34 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     { kind: 'text', key: 'imageAlt', label: 'Descrição da imagem (acessibilidade)', max: 160, optional: true },
     { kind: 'link', key: 'action', label: 'Botão' },
     { kind: 'link', key: 'corner', label: 'Ícone no canto (link)', optional: true },
+  ],
+  'interactive-hero': [
+    { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },
+    { kind: 'text', key: 'eyebrow', label: 'Selo acima do título', max: 40, optional: true },
+    { kind: 'text', key: 'title', label: 'Título (grande, com brilho)', max: 40 },
+    { kind: 'text', key: 'subtitle', label: 'Subtítulo', max: 120, optional: true },
+    { kind: 'text', key: 'captionLeft', label: 'Legenda inferior esquerda', max: 40, optional: true },
+    { kind: 'text', key: 'captionRight', label: 'Legenda inferior direita', max: 40, optional: true },
+    { kind: 'image', key: 'plateUrl', label: 'Imagem de fundo (16:9)', hint: 'Ideal 1920×1080. Cobre toda a seção. Sem imagem, aparece um céu escuro com horizonte.' },
+    { kind: 'text', key: 'plateAlt', label: 'Descrição da imagem de fundo (acessibilidade)', max: 160, optional: true },
+    {
+      kind: 'video',
+      key: 'clipUrl',
+      label: 'Clipe que segue o mouse',
+      hint: 'MP4 ou WebM sem som, até 5 MB. O primeiro quadro olha para a esquerda e o último para a direita. O clipe não é reproduzido: a posição do mouse escolhe o quadro.',
+    },
+    { kind: 'range', key: 'clipX', label: 'Clipe: posição horizontal', min: 0, max: 1440, step: 1, unit: ' px' },
+    { kind: 'range', key: 'clipY', label: 'Clipe: posição vertical', min: 0, max: 810, step: 1, unit: ' px' },
+    { kind: 'range', key: 'clipW', label: 'Clipe: largura', min: 50, max: 1440, step: 1, unit: ' px' },
+    { kind: 'range', key: 'clipH', label: 'Clipe: altura', min: 50, max: 810, step: 1, unit: ' px' },
+    { kind: 'image', key: 'overlayUrl', label: 'Imagem do botão (ex.: capacete)', hint: 'Sobre fundo preto: o preto fica transparente. Sem imagem, o botão não aparece.' },
+    { kind: 'range', key: 'overlayX', label: 'Sobreposição: posição horizontal', min: 0, max: 1440, step: 1, unit: ' px' },
+    { kind: 'range', key: 'overlayY', label: 'Sobreposição: posição vertical', min: 0, max: 810, step: 1, unit: ' px' },
+    { kind: 'range', key: 'overlaySize', label: 'Sobreposição: tamanho', min: 50, max: 1000, step: 1, unit: ' px' },
+    { kind: 'text', key: 'buttonLabel', label: 'Texto do botão (use / para quebrar a linha)', max: 30 },
+    { kind: 'range', key: 'buttonX', label: 'Botão: posição horizontal', min: 0, max: 1440, step: 1, unit: ' px' },
+    { kind: 'range', key: 'buttonY', label: 'Botão: posição vertical', min: 0, max: 810, step: 1, unit: ' px' },
+    { kind: 'range', key: 'buttonSize', label: 'Botão: tamanho', min: 30, max: 200, step: 1, unit: ' px' },
   ],
   'site-footer': [
     { kind: 'textarea', key: 'description', label: 'Descrição', max: 240, rows: 2 },

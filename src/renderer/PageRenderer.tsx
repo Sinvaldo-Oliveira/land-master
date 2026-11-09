@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { lazy, Suspense, useRef } from 'react'
 import { SiteThemeContext } from './context'
 import { About } from './sections/About'
 import { Contact } from './sections/Contact'
@@ -14,6 +14,9 @@ import { themeVars } from './theme'
 import type { PageDocument, Section } from './types'
 import { useReveal } from './useReveal'
 import './site.css'
+
+// Seção pesada (vídeo, cursor, fontes próprias): só baixa quando a página tiver esta seção.
+const InteractiveHero = lazy(() => import('./sections/InteractiveHero'))
 
 /**
  * Desenha um PageDocument. Este módulo é do site público:
@@ -72,6 +75,12 @@ function SectionView({ section, brandName }: { section: Section; brandName: stri
       return <Contact section={section} />
     case 'image-card':
       return <ImageCard section={section} />
+    case 'interactive-hero':
+      return (
+        <Suspense fallback={<div aria-hidden="true" className="h-svh min-h-[560px] bg-[#02040d]" />}>
+          <InteractiveHero section={section} />
+        </Suspense>
+      )
     default:
       // Tipos desconhecidos (documento de versão futura ou corrompido) não quebram a página.
       return null

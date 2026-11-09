@@ -19,6 +19,22 @@ const href = z
   .min(1, 'Link: preencha o destino.')
   .refine((value) => value === '#' || safeHref(value) !== '#', 'Link inválido. Use #secao, /pagina, https://, mailto: ou tel:.')
 
+/** Endereço https (ou vazio = sem mídia). */
+const httpsOrEmpty = (label: string) =>
+  z
+    .string()
+    .trim()
+    .max(500, label + ': use no máximo 500 caracteres.')
+    .refine((v) => v === '' || /^https:\/\/\S+$/.test(v), label + ': use um endereço que comece com https://.')
+
+/** Posição ou tamanho em pixels do quadro de 1440×810. */
+const framePx = (label: string, min: number, max: number) =>
+  z
+    .number()
+    .int(label + ': use um número inteiro.')
+    .min(min, label + ': mínimo ' + min + '.')
+    .max(max, label + ': máximo ' + max + '.')
+
 const link = z.object({ label: text('Texto do botão', 60), href })
 
 const icon = z.enum([
@@ -149,6 +165,30 @@ const section = z.discriminatedUnion('type', [
     imageAlt: optionalText('Descrição da imagem', 160),
     action: link,
     corner: link.optional(),
+  }),
+  z.object({
+    ...base,
+    type: z.literal('interactive-hero'),
+    eyebrow: optionalText('Selo', 40),
+    title: text('Título', 40),
+    subtitle: optionalText('Subtítulo', 120),
+    captionLeft: optionalText('Legenda esquerda', 40),
+    captionRight: optionalText('Legenda direita', 40),
+    plateUrl: httpsOrEmpty('Imagem de fundo'),
+    plateAlt: optionalText('Descrição da imagem de fundo', 160),
+    clipUrl: httpsOrEmpty('Clipe'),
+    clipX: framePx('Clipe: posição horizontal', 0, 1440),
+    clipY: framePx('Clipe: posição vertical', 0, 810),
+    clipW: framePx('Clipe: largura', 50, 1440),
+    clipH: framePx('Clipe: altura', 50, 810),
+    overlayUrl: httpsOrEmpty('Imagem do botão'),
+    overlayX: framePx('Sobreposição: posição horizontal', 0, 1440),
+    overlayY: framePx('Sobreposição: posição vertical', 0, 810),
+    overlaySize: framePx('Sobreposição: tamanho', 50, 1000),
+    buttonLabel: text('Texto do botão', 30),
+    buttonX: framePx('Botão: posição horizontal', 0, 1440),
+    buttonY: framePx('Botão: posição vertical', 0, 810),
+    buttonSize: framePx('Botão: tamanho', 30, 200),
   }),
   z.object({
     ...base,

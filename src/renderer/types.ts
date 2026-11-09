@@ -160,6 +160,37 @@ export type ImageCardSection = SectionBase & {
   corner?: LinkItem
 }
 
+/**
+ * Hero interativo: quadro 16:9 que cobre a tela, com imagem de fundo, clipe de vídeo
+ * "arrastado" pela posição do mouse (ex.: a cabeça de um personagem seguindo o cursor)
+ * e uma sobreposição que aparece ao apertar um botão (ex.: um capacete).
+ * Posições e tamanhos em pixels de um quadro de 1440×810.
+ */
+export type InteractiveHeroSection = SectionBase & {
+  type: 'interactive-hero'
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  captionLeft?: string
+  captionRight?: string
+  plateUrl: string
+  plateAlt?: string
+  clipUrl: string
+  clipX: number
+  clipY: number
+  clipW: number
+  clipH: number
+  overlayUrl: string
+  overlayX: number
+  overlayY: number
+  overlaySize: number
+  /** Texto do botão; "/" quebra a linha (ex.: "APERTE/AQUI"). */
+  buttonLabel: string
+  buttonX: number
+  buttonY: number
+  buttonSize: number
+}
+
 export type FooterSection = SectionBase & {
   type: 'site-footer'
   brand: Brand
@@ -178,6 +209,7 @@ export type Section =
   | CtaSection
   | ContactSection
   | ImageCardSection
+  | InteractiveHeroSection
   | FooterSection
 
 export type PageDocument = {

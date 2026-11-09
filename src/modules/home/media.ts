@@ -84,6 +84,9 @@ export function storageErrorMessage(error: unknown): string {
   if (/bucket not found/i.test(message)) {
     return 'O armazenamento de imagens ainda não está configurado neste projeto. Aplique a migração do bucket site-media.'
   }
+  if (/mime type|not supported|invalid_mime/i.test(message)) {
+    return 'O armazenamento ainda não aceita este tipo de arquivo. Rode o script supabase/RODAR_SO_VIDEO_site_media.sql no SQL Editor.'
+  }
   if (/exceeded|too large|payload/i.test(message)) return 'A imagem convertida ficou grande demais. Tente outra imagem.'
   if (/row-level security|permission|not allowed|unauthorized|403/i.test(message)) {
     return 'Seu perfil não tem permissão para enviar imagens ao site.'
@@ -124,6 +127,94 @@ export async function uploadSiteImage(file: File): Promise<UploadedImage> {
   if (insertError) {
     await storage.remove([path]).catch(() => undefined)
     throw new Error(supabaseErrorMessage(insertError, 'Não foi possível registrar a imagem.'))
+  }
+
+  return { url: storage.getPublicUrl(path).data.publicUrl, mediaId: data.id }
+}
+
+/* ---------------------------------------------------------------------------
+ * Vídeos curtos (clipe do hero interativo). Enviados como estão (sem conversão),
+ * até 5 MB, e registrados em media_assets. Exige a migração 20261111150000.
+ * ------------------------------------------------------------------------- */
+
+export const VIDEO_TYPES = ['video/mp4', 'video/webm'] as const
+export const VIDEO_ACCEPT = VIDEO_TYPES.join(',')
+
+/** Tipo real do vídeo pela assinatura: WebM (EBML) ou MP4 (caixa "ftyp" que não seja AVIF). */
+export function sniffVideoType(head: Uint8Array): string | null {
+  if (head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3) return 'video/webm'
+  if (ascii(head, 4, 8) === 'ftyp' && !['avif', 'avis'].includes(ascii(head, 8, 12))) return 'video/mp4'
+  return null
+}
+
+export async function checkVideoFile(file: File): Promise<string | undefined> {
+  if (!(VIDEO_TYPES as readonly string[]).includes(file.type)) return 'Use um vídeo MP4 ou WebM.'
+  if (file.size === 0) return 'O arquivo está vazio. Escolha outro vídeo.'
+  if (file.size > MAX_IMAGE_BYTES) return 'O vídeo tem mais de 5 MB. Use um clipe mais curto ou mais comprimido.'
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer())
+  if (sniffVideoType(head) !== file.type) return 'O conteúdo do arquivo não é um vídeo desse tipo.'
+  return undefined
+}
+
+/** Lê largura e altura do vídeo; devolve null se o navegador não conseguir ler a tempo. */
+function readVideoSize(file: File): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const video = document.createElement('video')
+    const done = (value: { width: number; height: number } | null) => {
+      URL.revokeObjectURL(url)
+      resolve(value)
+    }
+    const timer = setTimeout(() => done(null), 5000)
+    video.preload = 'metadata'
+    video.muted = true
+    video.onloadedmetadata = () => {
+      clearTimeout(timer)
+      done(video.videoWidth > 0 ? { width: video.videoWidth, height: video.videoHeight } : null)
+    }
+    video.onerror = () => {
+      clearTimeout(timer)
+      done(null)
+    }
+    video.src = url
+  })
+}
+
+export async function uploadSiteVideo(file: File): Promise<UploadedImage> {
+  const problem = await checkVideoFile(file)
+  if (problem) throw new Error(problem)
+
+  const size = await readVideoSize(file)
+  const sb = requireSupabase()
+  const extension = file.type === 'video/webm' ? 'webm' : 'mp4'
+  const path = buildSitePath(new Date(), extension, crypto.randomUUID())
+  const storage = sb.storage.from(SITE_MEDIA_BUCKET)
+
+  const { error: uploadError } = await storage.upload(path, file, {
+    contentType: file.type,
+    cacheControl: '31536000',
+    upsert: false,
+  })
+  if (uploadError) {
+    console.warn('Upload do vídeo recusado pelo Storage:', uploadError.message)
+    throw new Error(storageErrorMessage(uploadError))
+  }
+
+  const { data, error: insertError } = await sb
+    .from('media_assets')
+    .insert({
+      bucket: SITE_MEDIA_BUCKET,
+      path,
+      mime: file.type,
+      size_bytes: file.size,
+      width: size?.width ?? null,
+      height: size?.height ?? null,
+    })
+    .select('id')
+    .single()
+  if (insertError) {
+    await storage.remove([path]).catch(() => undefined)
+    throw new Error(supabaseErrorMessage(insertError, 'Não foi possível registrar o vídeo.'))
   }
 
   return { url: storage.getPublicUrl(path).data.publicUrl, mediaId: data.id }

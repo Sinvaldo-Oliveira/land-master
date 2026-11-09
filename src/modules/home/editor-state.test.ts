@@ -4,6 +4,7 @@ import { validateDocument } from './document-schema'
 import { HIGHLIGHT_ERROR, highlightInTitle, sectionName } from './section-fields'
 import {
   addImageSection,
+  addInteractiveHeroSection,
   contrastWarnings,
   getBrandName,
   moveSection,
@@ -134,5 +135,24 @@ describe('imagem do destaque: validação', () => {
   it('rejeita endereço de imagem que não seja https', () => {
     expect(validateDocument(heroWith({ imageUrl: 'http://x.com/a.jpg' })).some((i) => i.sectionId === 'hero')).toBe(true)
     expect(validateDocument(heroWith({ imageUrl: '' }))).toEqual([])
+  })
+})
+
+describe('nova seção: hero interativo', () => {
+  it('cria "Imagem Hiro 02" antes do rodapé, com conteúdo padrão válido', () => {
+    const { doc: next, id } = addInteractiveHeroSection(doc)
+    const index = next.sections.findIndex((x) => x.id === id)
+    expect(next.sections[index + 1]?.type).toBe('site-footer')
+    expect(sectionName(next.sections[index]!)).toBe('Imagem Hiro 02')
+    expect(validateDocument(next)).toEqual([])
+  })
+
+  it('rejeita posição fora do quadro', () => {
+    const { doc: next, id } = addInteractiveHeroSection(doc)
+    const bad = {
+      ...next,
+      sections: next.sections.map((x) => (x.id === id && x.type === 'interactive-hero' ? { ...x, clipX: 2000 } : x)),
+    }
+    expect(validateDocument(bad).some((issue) => issue.sectionId === id)).toBe(true)
   })
 })
