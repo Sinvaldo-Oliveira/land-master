@@ -114,6 +114,12 @@ export type Database = {
         Update: { title?: string; description?: string | null; due_at?: string | null; completed_at?: string | null; assignee_id?: string | null }
         Relationships: []
       }
+      media_assets: {
+        Row: { id: string; bucket: string; path: string; mime: string; size_bytes: number; width: number | null; height: number | null; alt: string | null; uploaded_by: string | null; created_at: string }
+        Insert: { bucket: string; path: string; mime: string; size_bytes: number; width?: number | null; height?: number | null; alt?: string | null; uploaded_by?: string | null }
+        Update: never
+        Relationships: []
+      }
       pages: {
         Row: {
           id: string; kind: 'home' | 'landing'; title: string; slug: string | null

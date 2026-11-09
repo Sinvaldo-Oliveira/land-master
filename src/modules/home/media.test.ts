@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSitePath, sniffImageType } from './media'
+import { buildSitePath, fitWithin, sniffImageType, storageErrorMessage } from './media'
 
 const bytes = (...values: number[]) => new Uint8Array(values)
 const text = (value: string) => new Uint8Array([...value].map((c) => c.charCodeAt(0)))
@@ -22,5 +22,26 @@ describe('sniffImageType', () => {
 describe('buildSitePath', () => {
   it('organiza por ano e mês, com nome único', () => {
     expect(buildSitePath(new Date(Date.UTC(2026, 10, 9)), 'webp', 'abc-123')).toBe('2026/11/abc-123.webp')
+  })
+})
+
+describe('fitWithin', () => {
+  it('reduz o maior lado mantendo a proporção e nunca amplia', () => {
+    expect(fitWithin(4000, 3000, 2000)).toEqual({ width: 2000, height: 1500 })
+    expect(fitWithin(800, 600, 2000)).toEqual({ width: 800, height: 600 })
+  })
+})
+
+describe('storageErrorMessage', () => {
+  it('explica quando o bucket ainda não existe no projeto', () => {
+    expect(storageErrorMessage({ message: 'Bucket not found' })).toMatch(/migração do bucket site-media/)
+  })
+
+  it('explica quando falta permissão', () => {
+    expect(storageErrorMessage({ message: 'new row violates row-level security policy' })).toMatch(/não tem permissão/)
+  })
+
+  it('usa a mensagem genérica para o resto', () => {
+    expect(storageErrorMessage({ message: 'boom' })).toMatch(/Verifique a conexão/)
   })
 })

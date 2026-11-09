@@ -43,7 +43,7 @@ export function ImageField({
     setLocalPreview(preview)
     setBusy(true)
     try {
-      const url = await uploadSiteImage(file)
+      const { url } = await uploadSiteImage(file)
       onChange(url)
       setLocalPreview(null)
       URL.revokeObjectURL(preview)
@@ -58,7 +58,7 @@ export function ImageField({
   }
 
   const shown = localPreview ?? (value.trim() !== '' ? value : null)
-  const defaultHint = 'JPEG, PNG, WebP ou AVIF, até 5 MB. No celular você escolhe da galeria ou tira uma foto.'
+  const defaultHint = 'WebP, JPEG, PNG ou AVIF, até 5 MB. Vira WebP compactado ao enviar. No celular você escolhe da galeria ou tira uma foto.'
 
   return (
     <Field label={label} htmlFor={id} error={error} hint={hint ?? defaultHint}>

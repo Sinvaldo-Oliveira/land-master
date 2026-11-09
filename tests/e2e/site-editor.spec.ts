@@ -195,36 +195,79 @@ test('faixa de diferenciais na prévia tem 6 colunas no computador', async ({ pa
   expect(columns).toBe(6)
 })
 
-const PNG_HEAD = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52])
+/** Gera uma imagem real no próprio navegador (64×48), no formato pedido. */
+async function sampleImage(page: Page, type: 'image/png' | 'image/webp'): Promise<Buffer> {
+  const base64 = await page.evaluate((mime) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 64
+    canvas.height = 48
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#2f5bea'
+    ctx.fillRect(0, 0, 64, 48)
+    return canvas.toDataURL(mime).split(',')[1]!
+  }, type)
+  return Buffer.from(base64, 'base64')
+}
 
-test('imagem da seção é enviada do dispositivo e a URL pública é salva', async ({ page }) => {
-  await signInAs(page, 'admin')
-  await fakeSiteBackend(page)
-  const uploads: string[] = []
+/** Storage e tabela media_assets simulados; grava os envios para conferência. */
+async function fakeMediaBackend(page: Page, options: { bucketMissing?: boolean } = {}) {
+  const uploads: { path: string; body: string }[] = []
+  const registros: Record<string, unknown>[] = []
   await page.route('https://e2etest.supabase.co/storage/v1/object/**', async (route) => {
-    // Só os envios (POST); a leitura pela URL pública também passa por aqui.
-    if (route.request().method() === 'POST') uploads.push(new URL(route.request().url()).pathname)
+    if (route.request().method() !== 'POST') return route.fallback()
+    if (options.bucketMissing) {
+      return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ statusCode: '404', error: 'Bucket not found', message: 'Bucket not found' }) })
+    }
+    uploads.push({ path: new URL(route.request().url()).pathname, body: route.request().postData() ?? '' })
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: 'site-media/x' }) })
   })
+  await page.route('https://e2etest.supabase.co/rest/v1/media_assets**', async (route) => {
+    registros.push(route.request().postDataJSON() as Record<string, unknown>)
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'm-1' }) })
+  })
+  return { uploads, registros }
+}
+
+test('PNG enviado do dispositivo vira WebP, vai ao Storage e é registrado no banco', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  const media = await fakeMediaBackend(page)
   await page.goto('/admin/site')
   await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
   await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
 
-  await page.getByLabel('Upload da imagem').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: PNG_HEAD })
+  const png = await sampleImage(page, 'image/png')
+  await page.getByLabel('Upload da imagem').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: png })
+
   await expect(page.getByRole('button', { name: 'Remover imagem' })).toBeVisible()
-  expect(uploads).toHaveLength(1)
-  expect(uploads[0]).toMatch(/^\/storage\/v1\/object\/site-media\/\d{4}\/\d{2}\/[0-9a-f-]+\.png$/)
+  expect(media.uploads).toHaveLength(1)
+  expect(media.uploads[0]!.path).toMatch(/^\/storage\/v1\/object\/site-media\/\d{4}\/\d{2}\/[0-9a-f-]+\.webp$/)
+  expect(media.uploads[0]!.body).toContain('Content-Type: image/webp')
+  expect(media.registros).toHaveLength(1)
+  expect(media.registros[0]).toMatchObject({ bucket: 'site-media', mime: 'image/webp', width: 64, height: 48 })
+  expect(Number(media.registros[0]!.size_bytes)).toBeGreaterThan(0)
   await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})
+
+test('WebP enviado é aceito e também é gravado como WebP', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  const media = await fakeMediaBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+
+  const webp = await sampleImage(page, 'image/webp')
+  await page.getByLabel('Upload da imagem').setInputFiles({ name: 'foto.webp', mimeType: 'image/webp', buffer: webp })
+  await expect(page.getByRole('button', { name: 'Remover imagem' })).toBeVisible()
+  expect(media.uploads[0]!.path).toMatch(/\.webp$/)
+  expect(media.registros[0]).toMatchObject({ mime: 'image/webp' })
 })
 
 test('arquivo com extensão de imagem mas conteúdo inválido é recusado sem enviar', async ({ page }) => {
   await signInAs(page, 'admin')
   await fakeSiteBackend(page)
-  let uploaded = false
-  await page.route('https://e2etest.supabase.co/storage/v1/object/**', async (route) => {
-    uploaded = true
-    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
-  })
+  const media = await fakeMediaBackend(page)
   await page.goto('/admin/site')
   await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
   await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
@@ -235,5 +278,17 @@ test('arquivo com extensão de imagem mas conteúdo inválido é recusado sem en
     buffer: Buffer.from('<script>alert(1)</script>'),
   })
   await expect(page.getByText('O conteúdo do arquivo não é uma imagem desse tipo.')).toBeVisible()
-  expect(uploaded).toBe(false)
+  expect(media.uploads).toHaveLength(0)
+})
+
+test('quando o bucket não existe, o erro explica o que fazer', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await fakeMediaBackend(page, { bucketMissing: true })
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+
+  await page.getByLabel('Upload da imagem').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: await sampleImage(page, 'image/png') })
+  await expect(page.getByText(/migração do bucket site-media/)).toBeVisible()
 })
