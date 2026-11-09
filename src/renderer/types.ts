@@ -54,7 +54,8 @@ export type Brand = { name: string; tagline?: string }
 
 export type SectionTone = 'light' | 'muted' | 'dark'
 
-type SectionBase = { id: string; anchor?: string }
+/** hidden: a seção continua no documento, mas não é desenhada no site. */
+type SectionBase = { id: string; anchor?: string; hidden?: boolean }
 
 export type HeaderSection = SectionBase & {
   type: 'site-header'

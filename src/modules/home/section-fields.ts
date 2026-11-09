@@ -1,0 +1,197 @@
+import type { IconName, Section } from '@/renderer/types'
+
+export type FieldDef =
+  | { kind: 'text'; key: string; label: string; max: number; optional?: boolean; hint?: string }
+  | { kind: 'textarea'; key: string; label: string; max: number; optional?: boolean; rows?: number; hint?: string }
+  | { kind: 'link'; key: string; label: string; optional?: boolean }
+  | { kind: 'icon'; key: string; label: string }
+  | { kind: 'select'; key: string; label: string; options: { value: string; label: string }[] }
+  | {
+      kind: 'list'
+      key: string
+      label: string
+      itemLabel: string
+      min?: number
+      max: number
+      fields: FieldDef[]
+      create: () => Record<string, unknown>
+    }
+  | { kind: 'strings'; key: string; label: string; itemLabel: string; itemMax: number; min?: number; max: number; multiline?: boolean }
+
+export const sectionLabels: Record<Section['type'], string> = {
+  'site-header': 'Cabeçalho',
+  hero: 'Destaque principal',
+  features: 'Serviços',
+  about: 'Sobre',
+  steps: 'Como trabalhamos',
+  faq: 'Perguntas frequentes',
+  cta: 'Chamada para ação',
+  contact: 'Contato',
+  'site-footer': 'Rodapé',
+}
+
+export const iconOptions: { value: IconName; label: string }[] = [
+  { value: 'target', label: 'Alvo' },
+  { value: 'layout', label: 'Layout' },
+  { value: 'smartphone', label: 'Celular' },
+  { value: 'search', label: 'Busca' },
+  { value: 'megaphone', label: 'Megafone' },
+  { value: 'palette', label: 'Paleta' },
+  { value: 'handshake', label: 'Aperto de mãos' },
+  { value: 'clock', label: 'Relógio' },
+  { value: 'shield', label: 'Escudo' },
+  { value: 'message', label: 'Mensagem' },
+  { value: 'life-buoy', label: 'Suporte' },
+  { value: 'sparkles', label: 'Brilho' },
+]
+
+const toneField: FieldDef = {
+  kind: 'select',
+  key: 'tone',
+  label: 'Fundo da seção',
+  options: [
+    { value: 'light', label: 'Claro' },
+    { value: 'muted', label: 'Suave' },
+    { value: 'dark', label: 'Escuro' },
+  ],
+}
+const eyebrow: FieldDef = { kind: 'text', key: 'eyebrow', label: 'Selo acima do título', max: 60, optional: true }
+const subtitle: FieldDef = { kind: 'textarea', key: 'subtitle', label: 'Subtítulo', max: 240, optional: true, rows: 2 }
+function linkList(label: string, max: number): FieldDef {
+  return {
+    kind: 'list',
+    key: 'links',
+    label,
+    itemLabel: 'Link',
+    max,
+    fields: [
+      { kind: 'text', key: 'label', label: 'Texto', max: 60 },
+      { kind: 'text', key: 'href', label: 'Destino', max: 300, hint: 'Ex.: #contato, /sobre, https://…, mailto:, tel:' },
+    ],
+    create: () => ({ label: 'Novo link', href: '#contato' }),
+  }
+}
+
+/** Campos editáveis por tipo de seção (a marca e as cores ficam em "Identidade"). */
+export const sectionFields: Record<Section['type'], FieldDef[]> = {
+  'site-header': [
+    linkList('Links do menu', 7),
+    { kind: 'link', key: 'cta', label: 'Botão em destaque', optional: true },
+  ],
+  hero: [
+    toneField,
+    eyebrow,
+    { kind: 'text', key: 'title', label: 'Título', max: 120 },
+    { kind: 'text', key: 'highlight', label: 'Trecho do título em destaque', max: 60, optional: true, hint: 'Copie exatamente uma parte do título; ela ganha a cor da marca.' },
+    { kind: 'textarea', key: 'subtitle', label: 'Subtítulo', max: 300, rows: 3 },
+    { kind: 'link', key: 'primary', label: 'Botão principal' },
+    { kind: 'link', key: 'secondary', label: 'Botão secundário', optional: true },
+    {
+      kind: 'list', key: 'points', label: 'Diferenciais', itemLabel: 'Diferencial', max: 4,
+      fields: [{ kind: 'icon', key: 'icon', label: 'Ícone' }, { kind: 'text', key: 'label', label: 'Texto', max: 40 }],
+      create: () => ({ icon: 'sparkles', label: 'Novo diferencial' }),
+    },
+  ],
+  features: [
+    toneField,
+    eyebrow,
+    { kind: 'text', key: 'title', label: 'Título', max: 100 },
+    subtitle,
+    {
+      kind: 'list', key: 'items', label: 'Serviços', itemLabel: 'Serviço', min: 1, max: 9,
+      fields: [
+        { kind: 'icon', key: 'icon', label: 'Ícone' },
+        { kind: 'text', key: 'title', label: 'Título', max: 60 },
+        { kind: 'textarea', key: 'description', label: 'Descrição', max: 220, rows: 2 },
+      ],
+      create: () => ({ icon: 'sparkles', title: 'Novo serviço', description: 'Descreva o serviço em uma ou duas frases.' }),
+    },
+  ],
+  about: [
+    toneField,
+    eyebrow,
+    { kind: 'text', key: 'title', label: 'Título', max: 120 },
+    { kind: 'strings', key: 'paragraphs', label: 'Parágrafos', itemLabel: 'Parágrafo', itemMax: 600, min: 1, max: 4, multiline: true },
+    { kind: 'strings', key: 'bullets', label: 'Lista de vantagens', itemLabel: 'Vantagem', itemMax: 90, max: 8 },
+    { kind: 'textarea', key: 'quote', label: 'Frase em destaque (painel)', max: 240, optional: true, rows: 2 },
+    { kind: 'link', key: 'cta', label: 'Botão', optional: true },
+  ],
+  steps: [
+    toneField,
+    eyebrow,
+    { kind: 'text', key: 'title', label: 'Título', max: 100 },
+    subtitle,
+    {
+      kind: 'list', key: 'items', label: 'Etapas', itemLabel: 'Etapa', min: 2, max: 6,
+      fields: [
+        { kind: 'icon', key: 'icon', label: 'Ícone' },
+        { kind: 'text', key: 'title', label: 'Título', max: 50 },
+        { kind: 'textarea', key: 'description', label: 'Descrição', max: 200, rows: 2 },
+      ],
+      create: () => ({ icon: 'target', title: 'Nova etapa', description: 'O que acontece nesta etapa.' }),
+    },
+  ],
+  faq: [
+    toneField,
+    eyebrow,
+    { kind: 'text', key: 'title', label: 'Título', max: 100 },
+    subtitle,
+    {
+      kind: 'list', key: 'items', label: 'Perguntas', itemLabel: 'Pergunta', min: 1, max: 12,
+      fields: [
+        { kind: 'text', key: 'question', label: 'Pergunta', max: 160 },
+        { kind: 'textarea', key: 'answer', label: 'Resposta', max: 800, rows: 3 },
+      ],
+      create: () => ({ question: 'Nova pergunta?', answer: 'Escreva a resposta.' }),
+    },
+  ],
+  cta: [
+    { kind: 'text', key: 'title', label: 'Título', max: 100 },
+    subtitle,
+    { kind: 'link', key: 'primary', label: 'Botão principal' },
+    { kind: 'link', key: 'secondary', label: 'Botão secundário', optional: true },
+  ],
+  contact: [
+    toneField,
+    eyebrow,
+    { kind: 'text', key: 'title', label: 'Título', max: 100 },
+    subtitle,
+    {
+      kind: 'list', key: 'channels', label: 'Canais de contato', itemLabel: 'Canal', max: 6,
+      fields: [
+        {
+          kind: 'select', key: 'kind', label: 'Tipo',
+          options: [
+            { value: 'whatsapp', label: 'WhatsApp' },
+            { value: 'email', label: 'E-mail' },
+            { value: 'phone', label: 'Telefone' },
+            { value: 'address', label: 'Endereço' },
+            { value: 'hours', label: 'Horário' },
+          ],
+        },
+        { kind: 'text', key: 'label', label: 'Nome exibido', max: 40 },
+        { kind: 'text', key: 'value', label: 'Valor exibido', max: 160 },
+        { kind: 'text', key: 'href', label: 'Link (opcional)', max: 300, optional: true, hint: 'Ex.: https://wa.me/5511999999999, mailto:…, tel:…' },
+      ],
+      create: () => ({ kind: 'email', label: 'E-mail', value: 'contato@empresa.com.br', href: 'mailto:contato@empresa.com.br' }),
+    },
+    { kind: 'link', key: 'primary', label: 'Botão', optional: true },
+  ],
+  'site-footer': [
+    { kind: 'textarea', key: 'description', label: 'Descrição', max: 240, rows: 2 },
+    {
+      kind: 'list', key: 'columns', label: 'Colunas de links', itemLabel: 'Coluna', max: 3,
+      fields: [{ kind: 'text', key: 'title', label: 'Título', max: 40 }, linkList('Links', 8)],
+      create: () => ({ title: 'Nova coluna', links: [] }),
+    },
+    { kind: 'text', key: 'legal', label: 'Texto legal', max: 160 },
+  ],
+}
+
+/** Resumo exibido na lista de seções (título da seção, quando houver). */
+export function sectionSummary(section: Section): string {
+  if ('title' in section && typeof section.title === 'string') return section.title
+  if (section.type === 'site-header') return `${section.links.length} links no menu`
+  if (section.type === 'site-footer') return section.description
+  return ''
+}

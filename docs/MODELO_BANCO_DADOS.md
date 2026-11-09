@@ -185,6 +185,8 @@ Dados públicos (nome, contatos, redes, tema publicado, logo) **não** são lido
 | `published_at`, `archived_at` | timestamptz | |
 | `created_by`, `created_at`, `updated_at`, `updated_by` | | |
 
+> **Implementado (2026-11-09, migração `20261111120000_site_pages.sql`):** o rascunho fica em `pages.draft_document` (jsonb) com `draft_updated_at` para detectar edição concorrente, em vez de `draft_version_id`. Só as publicações geram linhas em `page_versions` (imutáveis: sem privilégio de UPDATE). Escrita apenas pelas RPCs `ensure_home_page`, `save_page_draft` e `publish_page` (admin); leitura pública só por `get_public_site()`.
+
 **`page_versions`**
 | Coluna | Tipo | Regras |
 |---|---|---|

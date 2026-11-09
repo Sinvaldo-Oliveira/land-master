@@ -114,6 +114,23 @@ export type Database = {
         Update: { title?: string; description?: string | null; due_at?: string | null; completed_at?: string | null; assignee_id?: string | null }
         Relationships: []
       }
+      pages: {
+        Row: {
+          id: string; kind: 'home' | 'landing'; title: string; slug: string | null
+          status: 'draft' | 'published' | 'unpublished' | 'archived'; draft_document: Json
+          draft_updated_at: string; draft_updated_by: string | null; published_version_id: string | null
+          published_at: string | null; created_by: string | null; created_at: string; updated_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      page_versions: {
+        Row: { id: string; page_id: string; version_number: number; schema_version: number; document: Json; created_by: string | null; created_at: string }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
@@ -131,6 +148,10 @@ export type Database = {
         Args: { p_email?: string | null; p_phone?: string | null }
         Returns: { id: string; name: string; email: string | null; phone: string | null; lifecycle: ContactLifecycle; owner_id: string | null }[]
       }
+      ensure_home_page: { Args: { p_document: Json }; Returns: PageRow }
+      save_page_draft: { Args: { p_page_id: string; p_document: Json; p_expected_updated_at?: string | null }; Returns: PageRow }
+      publish_page: { Args: { p_page_id: string }; Returns: PageRow }
+      get_public_site: { Args: Record<PropertyKey, never>; Returns: Json }
     }
     Enums: { app_role: AppRoleName }
     CompositeTypes: { [_ in never]: never }
@@ -149,3 +170,4 @@ export type PipelineRow = Database['public']['Tables']['pipelines']['Row']
 export type ActivityRow = Database['public']['Tables']['activities']['Row']
 export type LostReasonRow = Database['public']['Tables']['lost_reasons']['Row']
 export type LeadSourceRow = Database['public']['Tables']['lead_sources']['Row']
+export type PageRow = Database['public']['Tables']['pages']['Row']

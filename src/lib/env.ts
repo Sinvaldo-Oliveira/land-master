@@ -1,7 +1,10 @@
 function clean(value: string | undefined): string | undefined {
   const trimmed = value?.trim()
   // Valores de exemplo do .env.example contêm "<" e não contam como configurados.
-  return trimmed && !trimmed.includes('<') ? trimmed : undefined
+  if (!trimmed || trimmed.includes('<')) return undefined
+  // Segunda barreira (a primeira é o build, em vite.config.ts): nunca usar nem exibir um segredo.
+  if (/sb_secret_|\bsbp_/i.test(trimmed)) return undefined
+  return trimmed
 }
 
 export const env = {

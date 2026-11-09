@@ -1,6 +1,5 @@
-import { SiteThemeContext } from './context'
 import { useRef } from 'react'
-
+import { SiteThemeContext } from './context'
 import { About } from './sections/About'
 import { Contact } from './sections/Contact'
 import { Cta } from './sections/Cta'
@@ -19,13 +18,15 @@ import './site.css'
  * Desenha um PageDocument. Este módulo é do site público:
  * NUNCA importe nada de src/admin ou src/modules aqui (verificado pelo check:bundle).
  */
-export function PageRenderer({ document: doc }: { document: PageDocument }) {
+export function PageRenderer({ document: doc, preview = false }: { document: PageDocument; preview?: boolean }) {
   const rootRef = useRef<HTMLDivElement>(null)
-  useReveal(rootRef, doc.theme.motion !== 'none')
+  // Na pré-visualização do painel o conteúdo aparece direto (sem animação de entrada).
+  useReveal(rootRef, !preview && doc.theme.motion !== 'none')
 
-  const header = doc.sections.find((s) => s.type === 'site-header')
-  const footer = doc.sections.find((s) => s.type === 'site-footer')
-  const body = doc.sections.filter((s) => s.type !== 'site-header' && s.type !== 'site-footer')
+  const visible = doc.sections.filter((s) => !s.hidden)
+  const header = visible.find((s) => s.type === 'site-header')
+  const footer = visible.find((s) => s.type === 'site-footer')
+  const body = visible.filter((s) => s.type !== 'site-header' && s.type !== 'site-footer')
   const brandName = header?.type === 'site-header' ? header.brand.name : (footer?.type === 'site-footer' ? footer.brand.name : '')
 
   return (
@@ -40,7 +41,10 @@ export function PageRenderer({ document: doc }: { document: PageDocument }) {
         {header?.type === 'site-header' ? <SiteHeader section={header} /> : null}
         <main id="conteudo" tabIndex={-1} className="outline-none">
           {body.map((section) => (
-            <SectionView key={section.id} section={section} brandName={brandName} />
+            // data-section-id: usado pela pré-visualização do painel para rolar até a seção editada.
+            <div key={section.id} data-section-id={section.id}>
+              <SectionView section={section} brandName={brandName} />
+            </div>
           ))}
         </main>
         {footer?.type === 'site-footer' ? <SiteFooter section={footer} /> : null}
@@ -65,8 +69,8 @@ function SectionView({ section, brandName }: { section: Section; brandName: stri
       return <Cta section={section} />
     case 'contact':
       return <Contact section={section} />
-    case 'site-header':
-    case 'site-footer':
+    default:
+      // Tipos desconhecidos (documento de versão futura ou corrompido) não quebram a página.
       return null
   }
 }

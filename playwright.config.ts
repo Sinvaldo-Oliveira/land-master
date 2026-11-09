@@ -38,6 +38,12 @@ export default defineConfig({
       testMatch: 'admin-shell.spec.ts',
       use: { ...devices['Pixel 7'], baseURL: `http://localhost:${SHELL_PORT}` },
     },
+    // Editor do site com backend falso em memória (mesmo build do Supabase fictício).
+    {
+      name: 'site-editor',
+      testMatch: 'site-editor.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: `http://localhost:${SHELL_PORT}` },
+    },
   ],
   // Os builds de teste NÃO dependem do .env de quem está desenvolvendo: as variáveis do processo
   // têm prioridade sobre os arquivos .env no Vite. "<...>" é tratado como ausente por src/lib/env.ts

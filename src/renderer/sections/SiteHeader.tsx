@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Menu, X } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ActionLink, BrandMark, Container } from '../primitives'
 import { safeHref } from '../safe-href'
 import type { HeaderSection } from '../types'
@@ -9,25 +9,30 @@ export function SiteHeader({ section }: { section: HeaderSection }) {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const menuId = useId()
+  const headerRef = useRef<HTMLElement>(null)
 
+  // Usa a janela onde o cabeçalho está desenhado (site ou iframe de pré-visualização do painel).
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8)
+    const win = headerRef.current?.ownerDocument.defaultView ?? window
+    const onScroll = () => setScrolled(win.scrollY > 8)
     onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    win.addEventListener('scroll', onScroll, { passive: true })
+    return () => win.removeEventListener('scroll', onScroll)
   }, [])
 
   useEffect(() => {
     if (!open) return
+    const win = headerRef.current?.ownerDocument.defaultView ?? window
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false)
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    win.addEventListener('keydown', onKey)
+    return () => win.removeEventListener('keydown', onKey)
   }, [open])
 
   return (
     <header
+      ref={headerRef}
       className={clsx(
         'sticky top-0 z-40 border-b transition-colors duration-300',
         scrolled || open
