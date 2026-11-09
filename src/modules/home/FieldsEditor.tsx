@@ -32,6 +32,7 @@ export function FieldsEditor({
           key={field.key}
           field={field}
           value={value[field.key]}
+          section={value}
           onChange={(next) => set(field.key, next)}
           id={`${idPrefix}-${field.key}`}
         />
@@ -55,11 +56,13 @@ function hrefError(value: string): string | undefined {
 function FieldControl({
   field,
   value,
+  section,
   onChange,
   id,
 }: {
   field: FieldDef
   value: unknown
+  section: Data
   onChange: (next: unknown) => void
   id: string
 }) {
@@ -68,7 +71,9 @@ function FieldControl({
     case 'textarea': {
       const current = typeof value === 'string' ? value : ''
       const isHref = field.key === 'href'
-      const error = isHref && (current !== '' || !field.optional) ? hrefError(current) : textError(current, field)
+      const error =
+        (isHref && (current !== '' || !field.optional) ? hrefError(current) : textError(current, field)) ??
+        ('check' in field && field.check ? field.check(current, section) : undefined)
       const hint = field.hint ?? (field.optional ? 'Opcional.' : undefined)
       const common = {
         id,

@@ -71,6 +71,8 @@ test('admin cria a Home pelo modelo, edita com pré-visualização ao vivo e pub
   await page.getByRole('button', { name: /^Destaque principal/ }).click()
   const title = page.getByLabel(/^Título/)
   await title.fill('Contabilidade descomplicada para pequenas empresas')
+  // O trecho antigo deixou de existir no título: sem apagá-lo o salvamento é bloqueado (correto).
+  await page.getByLabel(/^Trecho do título em destaque/).fill('')
   await expect(preview(page).getByRole('heading', { level: 1 })).toHaveText('Contabilidade descomplicada para pequenas empresas')
   await expect(page.getByText('Alterações não salvas')).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('editor-secao.png') })
@@ -102,6 +104,31 @@ test('campos inválidos bloqueiam o salvamento e levam à seção', async ({ pag
   const alert = page.getByRole('alert').filter({ hasText: 'Corrija estes campos' })
   await expect(alert).toContainText('Título: preencha este campo.')
   await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})
+
+test('trecho em destaque precisa existir no título', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await page.getByRole('button', { name: /^Destaque principal/ }).click()
+  await page.getByLabel(/^Título/).fill('Sua melhor versão começa com o')
+  const highlight = page.getByLabel(/^Trecho do título em destaque/)
+  await highlight.fill('cuidado que você merece.')
+  await expect(page.getByText(/este trecho não aparece no título/i).first()).toBeVisible()
+  await expect(highlight).toHaveAttribute('aria-invalid', 'true')
+
+  await page.getByRole('button', { name: 'Salvar rascunho' }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Corrija estes campos' })).toBeVisible()
+
+  // Copiar o trecho para dentro do título resolve
+  await page.getByLabel(/^Título/).fill('Sua melhor versão começa com o cuidado que você merece.')
+  await expect(page.getByText(/este trecho não aparece no título/i)).toHaveCount(0)
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
+  await page.getByRole('button', { name: 'Salvar rascunho' }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Corrija estes campos' })).toHaveCount(0)
+  await expect(preview(page).locator('h1 .site-gradient-text')).toHaveText('cuidado que você merece.')
 })
 
 test('identidade: nome da empresa e cor da marca mudam a prévia', async ({ page }) => {

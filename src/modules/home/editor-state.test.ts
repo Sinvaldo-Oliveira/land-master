@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { institucionalTemplate } from '@/renderer/templates/institucional'
 import { validateDocument } from './document-schema'
+import { HIGHLIGHT_ERROR, highlightInTitle } from './section-fields'
 import {
   contrastWarnings,
   getBrandName,
@@ -59,6 +60,33 @@ describe('edição', () => {
   it('avisa quando a cor principal some sobre o fundo branco', () => {
     expect(contrastWarnings(doc)).toEqual([])
     expect(contrastWarnings(setBrandColor(doc, 'primary', '#ffd43b')).length).toBeGreaterThan(0)
+  })
+
+  it('trecho em destaque que não está no título bloqueia o salvamento e aponta o campo', () => {
+    const wrong = {
+      ...doc,
+      sections: doc.sections.map((s) =>
+        s.type === 'hero' ? { ...s, title: 'Sua melhor versão começa com o', highlight: 'cuidado que você merece.' } : s,
+      ),
+    }
+    expect(validateDocument(wrong)).toContainEqual({
+      sectionId: 'hero',
+      message: 'Trecho do título em destaque: este trecho não aparece no título.',
+    })
+    const fixed = {
+      ...wrong,
+      sections: wrong.sections.map((s) =>
+        s.type === 'hero' ? { ...s, title: 'Sua melhor versão começa com o cuidado que você merece.' } : s,
+      ),
+    }
+    expect(validateDocument(fixed)).toEqual([])
+  })
+
+  it('campo de destaque acusa o erro enquanto digita', () => {
+    const hero = doc.sections.find((s) => s.type === 'hero')!
+    expect(highlightInTitle('cuidado que você merece.', { ...hero, title: 'Sua melhor versão começa com o' })).toBe(HIGHLIGHT_ERROR)
+    expect(highlightInTitle('', hero)).toBeUndefined()
+    expect(highlightInTitle('o seu negócio crescer', hero)).toBeUndefined()
   })
 
   it('aponta a seção com problema na validação', () => {

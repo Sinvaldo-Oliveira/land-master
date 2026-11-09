@@ -1,7 +1,16 @@
 import type { IconName, Section } from '@/renderer/types'
 
 export type FieldDef =
-  | { kind: 'text'; key: string; label: string; max: number; optional?: boolean; hint?: string }
+  | {
+      kind: 'text'
+      key: string
+      label: string
+      max: number
+      optional?: boolean
+      hint?: string
+      /** Regra extra que enxerga os outros campos da seção (ex.: destaque precisa existir no título). */
+      check?: (value: string, section: Record<string, unknown>) => string | undefined
+    }
   | { kind: 'textarea'; key: string; label: string; max: number; optional?: boolean; rows?: number; hint?: string }
   | { kind: 'link'; key: string; label: string; optional?: boolean }
   | { kind: 'icon'; key: string; label: string }
@@ -17,6 +26,15 @@ export type FieldDef =
       create: () => Record<string, unknown>
     }
   | { kind: 'strings'; key: string; label: string; itemLabel: string; itemMax: number; min?: number; max: number; multiline?: boolean }
+
+export const HIGHLIGHT_ERROR = 'Este trecho não aparece no título. Copie exatamente uma parte do título (ou apague este campo).'
+
+/** O trecho em destaque precisa estar, exatamente, dentro do título da mesma seção. */
+export function highlightInTitle(value: string, section: Record<string, unknown>): string | undefined {
+  if (value.trim() === '') return undefined
+  const title = typeof section.title === 'string' ? section.title : ''
+  return title.includes(value) ? undefined : HIGHLIGHT_ERROR
+}
 
 export const sectionLabels: Record<Section['type'], string> = {
   'site-header': 'Cabeçalho',
@@ -82,7 +100,15 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     toneField,
     eyebrow,
     { kind: 'text', key: 'title', label: 'Título', max: 120 },
-    { kind: 'text', key: 'highlight', label: 'Trecho do título em destaque', max: 60, optional: true, hint: 'Copie exatamente uma parte do título; ela ganha a cor da marca.' },
+    {
+      kind: 'text',
+      key: 'highlight',
+      label: 'Trecho do título em destaque',
+      max: 60,
+      optional: true,
+      hint: 'Deixe vazio para não destacar. Se preencher, copie exatamente um trecho que esteja no título.',
+      check: highlightInTitle,
+    },
     { kind: 'textarea', key: 'subtitle', label: 'Subtítulo', max: 300, rows: 3 },
     { kind: 'link', key: 'primary', label: 'Botão principal' },
     { kind: 'link', key: 'secondary', label: 'Botão secundário', optional: true },

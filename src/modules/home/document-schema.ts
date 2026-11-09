@@ -154,6 +154,17 @@ export const pageDocumentSchema = z.object({
     motion: z.enum(['none', 'subtle']),
   }),
   sections: z.array(section).max(20),
+}).superRefine((doc, ctx) => {
+  // Regras que dependem de dois campos da mesma seção (o trecho precisa existir no título).
+  doc.sections.forEach((s, index) => {
+    if (s.type === 'hero' && s.highlight && !s.title.includes(s.highlight)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sections', index, 'highlight'],
+        message: 'Trecho do título em destaque: este trecho não aparece no título.',
+      })
+    }
+  })
 })
 
 export type DocumentIssue = { sectionId: string | null; message: string }

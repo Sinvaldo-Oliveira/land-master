@@ -117,7 +117,9 @@ function Editor({ initial }: { initial: HomePage }) {
   const [selection, setSelection] = useState<Selection>({ kind: 'list' })
   const [device, setDevice] = useState<PreviewDevice>('desktop')
   const [focus, setFocus] = useState<string | null>(null)
-  const [issues, setIssues] = useState<DocumentIssue[]>([])
+  // A lista de erros é recalculada a cada alteração, depois da primeira tentativa de salvar.
+  const [attempted, setAttempted] = useState(false)
+  const issues: DocumentIssue[] = attempted ? validateDocument(doc) : []
 
   const dirty = doc !== saved.draft_document
   const neverPublished = !saved.published_at
@@ -131,7 +133,7 @@ function Editor({ initial }: { initial: HomePage }) {
 
   const validate = (): boolean => {
     const found = validateDocument(doc)
-    setIssues(found)
+    setAttempted(true)
     if (found.length > 0) {
       toast.error(`Há ${found.length} campo(s) a corrigir antes de salvar.`, { duration: 6000 })
       return false
