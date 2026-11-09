@@ -158,7 +158,7 @@ function HeroImage({ url, alt, size }: { url: string; alt: string; size: number 
             alt={alt}
             loading="lazy"
             decoding="async"
-            className="block aspect-[4/3] w-full rounded-site-lg object-cover shadow-[0_40px_80px_-30px_rgb(11_19_36/0.45)] ring-1 ring-site-border"
+            className="block h-auto w-full object-contain [filter:drop-shadow(0_30px_40px_rgb(11_19_36/0.25))]"
           />
         </div>
       </div>
