@@ -51,7 +51,7 @@ const section = z.discriminatedUnion('type', [
     subtitle: text('Subtítulo', 300),
     primary: link,
     secondary: link.optional(),
-    points: z.array(z.object({ icon, label: text('Diferencial', 40) })).max(4, 'No máximo 4 diferenciais.'),
+    points: z.array(z.object({ icon, label: text('Diferencial', 40) })).max(12, 'No máximo 12 diferenciais (2 linhas de 6).'),
   }),
   z.object({
     ...base,

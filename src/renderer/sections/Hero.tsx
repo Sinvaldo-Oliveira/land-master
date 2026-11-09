@@ -49,24 +49,28 @@ export function Hero({ section }: { section: HeroSection }) {
             {section.secondary ? <ActionLink link={section.secondary} variant="secondary" /> : null}
           </div>
 
-          {section.points.length > 0 ? (
-            <ul
-              data-reveal
-              style={revealDelay(4)}
-              className="mt-12 flex flex-wrap gap-x-8 gap-y-5 border-t border-site-border pt-8"
-            >
-              {section.points.map((point) => (
-                <li key={point.label} className="flex min-w-0 max-w-full items-center gap-3 text-[0.95rem] leading-snug font-medium">
-                  <IconTile name={point.icon} className="size-10!" />
-                  {point.label}
-                </li>
-              ))}
-            </ul>
-          ) : null}
         </div>
 
         <HeroVisual />
       </Container>
+
+      {section.points.length > 0 ? (
+        // Faixa em largura total (fora da coluna de texto): cada linha tem 6 colunas fixas no computador.
+        <Container>
+          <ul
+            data-reveal
+            style={revealDelay(4)}
+            className="mt-14 grid grid-cols-3 gap-x-4 gap-y-8 border-t border-site-border pt-10 md:grid-cols-6"
+          >
+            {section.points.map((point) => (
+              <li key={point.label} className="flex min-w-0 flex-col items-center gap-3 text-center text-xs leading-snug font-medium break-words hyphens-none sm:text-sm">
+                <IconTile name={point.icon} className="size-8! sm:size-10!" />
+                {point.label}
+              </li>
+            ))}
+          </ul>
+        </Container>
+      ) : null}
     </SectionShell>
   )
 }

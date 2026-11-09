@@ -113,7 +113,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     { kind: 'link', key: 'primary', label: 'Botão principal' },
     { kind: 'link', key: 'secondary', label: 'Botão secundário', optional: true },
     {
-      kind: 'list', key: 'points', label: 'Diferenciais', itemLabel: 'Diferencial', max: 4,
+      kind: 'list', key: 'points', label: 'Diferenciais', itemLabel: 'Diferencial', max: 12,
       fields: [{ kind: 'icon', key: 'icon', label: 'Ícone' }, { kind: 'text', key: 'label', label: 'Texto', max: 40 }],
       create: () => ({ icon: 'sparkles', label: 'Novo diferencial' }),
     },
