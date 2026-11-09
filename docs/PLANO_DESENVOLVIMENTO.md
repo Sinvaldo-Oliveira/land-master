@@ -103,10 +103,10 @@
 
 | # | Decisão | Proposta | Bloqueia |
 |---|---|---|---|
-| D1 | Aprovar a arquitetura (ARQUITETURA_TECNICA) e a publicação híbrida (ADR-001) | Aprovar | Fase 2 |
-| D2 | Ambiente Supabase de desenvolvimento: **local com Docker Desktop** (`supabase start`) ou **projeto na nuvem de dev** | Local, se o Docker rodar na máquina; senão projeto de dev gratuito | 2.7 |
-| D3 | Repositório remoto (GitHub privado?) e CI (GitHub Actions para `verify`) | GitHub privado + Actions só de verificação | 2.1 |
-| D4 | Nome do produto (provisório: “Sistema de Gestão de Vendas e Landing Pages”) | Definir antes da tela de login | 2.8 (texto) |
+| D1 | Aprovar a arquitetura (ARQUITETURA_TECNICA) e a publicação híbrida (ADR-001) | **Aprovada (2026-11-09)** | — |
+| D2 | Ambiente Supabase de desenvolvimento | **Resolvida (2026-11-09):** sem Docker na máquina → projeto de dev na nuvem, a ser criado pelo responsável (roteiro em [DESENVOLVIMENTO_LOCAL §3](DESENVOLVIMENTO_LOCAL.md)) | Login real e pgTAP |
+| D3 | Repositório remoto (GitHub privado?) e CI (GitHub Actions para `verify`) | Git **local** por enquanto (branch `fase-2-fundacao`); remoto aguarda o responsável | Push/CI |
+| D4 | Nome do produto | Provisório “Painel de Vendas”, trocável em `VITE_APP_NAME` sem mudar código | — |
 | D5 | Operador comercial vê leads sem responsável? | Não; gestor/admin distribui | Fase 3 (RLS) |
 | D6 | Coleta de visitas (`page_events`) entra na v1? | Sim como P1, desativada por padrão | Fase 7 |
 | D7 | CAPTCHA Cloudflare Turnstile (conta gratuita na Cloudflare) | Disponível, desativado por padrão | Fase 6 |

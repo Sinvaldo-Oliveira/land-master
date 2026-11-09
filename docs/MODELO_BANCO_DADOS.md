@@ -14,7 +14,7 @@
 | Enums | Tipos `enum` para estados estáveis; tabelas de domínio para listas editáveis (origens, motivos de perda). |
 | FKs | Toda FK tem índice. `on delete` explícito em todas. |
 | Exclusão | Soft delete (`deleted_at`) em contatos e oportunidades; anonimização LGPD separada. Hard delete só em páginas/formulários (com confirmação) e por admin. |
-| RLS | Ativada e **forçada** em todas as tabelas de `public`. Funções em políticas envolvidas por `(select …)`. Colunas usadas em políticas indexadas. |
+| RLS | Ativada em todas as tabelas de `public` (teste automático garante). **`FORCE` não é usado**: as funções `security definer` de perfil rodam como dono da tabela e entrariam em recursão nas políticas; o dono só é usado por migrações e por essas funções. Funções em políticas envolvidas por `(select …)`. Colunas usadas em políticas indexadas. Privilégios por coluna (`grant update (col)`) restringem o que `authenticated` pode alterar. |
 | Funções privilegiadas | `security definer`, `set search_path = ''`, nomes qualificados, `revoke execute … from public` e grant explícito. |
 | Migrações | SQL versionado em `supabase/migrations/`, reproduzível do zero (`supabase db reset`). Nunca editar migração já aplicada em produção. |
 

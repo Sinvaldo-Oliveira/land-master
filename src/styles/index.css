@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/*
+ * Tokens do ADMIN ("Livro-caixa") — ver docs/DESIGN_SYSTEM.md, Parte A.
+ * O tema PÚBLICO usa tokens shadcn com escopo .site-root (Fase 4) e nunca lê --admin-*.
+ */
+@theme {
+  --color-admin-paper: #f6f4ee;
+  --color-admin-card: #ffffff;
+  --color-admin-sunken: #eeebe3;
+  --color-admin-ink: #15171c;
+  --color-admin-ink-2: #4a4f5a;
+  --color-admin-ink-3: #6f7480;
+  --color-admin-rule: #dedad0;
+  --color-admin-rule-strong: #c9c4b7;
+
+  --color-admin-accent: #0e7c66;
+  --color-admin-accent-hover: #0a6553;
+  --color-admin-accent-soft: #ddf0ea;
+  --color-admin-success: #2f7d32;
+  --color-admin-success-soft: #e3f1e3;
+  --color-admin-warning: #9a5b00;
+  --color-admin-warning-soft: #fbefd9;
+  --color-admin-danger: #b42318;
+  --color-admin-danger-soft: #fbe4e1;
+  --color-admin-info: #2b5fa8;
+  --color-admin-info-soft: #e2ebf7;
+
+  --font-admin-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-admin-body: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-admin-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --text-admin-xs: 0.75rem;
+  --text-admin-xs--line-height: 1rem;
+  --text-admin-sm: 0.8125rem;
+  --text-admin-sm--line-height: 1.25rem;
+  --text-admin-base: 0.875rem;
+  --text-admin-base--line-height: 1.375rem;
+  --text-admin-lg: 1rem;
+  --text-admin-lg--line-height: 1.5rem;
+  --text-admin-xl: 1.25rem;
+  --text-admin-xl--line-height: 1.75rem;
+  --text-admin-2xl: 1.625rem;
+  --text-admin-2xl--line-height: 2rem;
+  --text-admin-kpi: 2rem;
+  --text-admin-kpi--line-height: 2.25rem;
+
+  --radius-admin: 6px;
+  --radius-admin-lg: 10px;
+
+  --shadow-admin-card: 0 1px 0 rgb(21 23 28 / 0.04);
+  --shadow-admin-pop: 0 8px 24px -8px rgb(21 23 28 / 0.18), 0 0 0 1px rgb(21 23 28 / 0.06);
+
+  --ease-admin: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --animate-admin-fade-in: admin-fade-in 200ms var(--ease-admin);
+  --animate-admin-slide-in-right: admin-slide-in-right 280ms var(--ease-admin);
+  --animate-admin-scale-in: admin-scale-in 200ms var(--ease-admin);
+
+  @keyframes admin-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes admin-slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes admin-scale-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: #ffffff;
+    color: #15171c;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Toda a área administrativa fica sob .admin-root */
+  .admin-root {
+    min-height: 100dvh;
+    background: var(--color-admin-paper);
+    color: var(--color-admin-ink);
+    font-family: var(--font-admin-body);
+    font-size: var(--text-admin-base);
+    line-height: var(--text-admin-base--line-height);
+  }
+  .admin-root :focus-visible {
+    outline: 2px solid var(--color-admin-accent);
+    outline-offset: 2px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

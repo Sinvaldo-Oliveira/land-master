@@ -46,7 +46,9 @@ Versões estáveis consultadas no npm em 2026-11-09. Serão **fixadas exatamente
 | Estilo | `class-variance-authority`, `tailwind-merge`, `clsx` | 0.7.1 / 3.7 / 2.1 | Variantes de componentes no padrão shadcn/ui (base do ecossistema do 21st.dev) |
 | Ferramenta | `shadcn` (CLI, dev) | 4.23.x | Só para gerar/adaptar componentes no repositório; não é dependência de runtime |
 | Animação | `motion` | 14.11.x | **Somente** por import dinâmico em blocos que exigem física/layout; o resto é CSS — ver [REFERENCIAS_VISUAIS §4](REFERENCIAS_VISUAIS.md#4-animações-e-transições) |
-| Rotas | `react-router` | 8.5.x (modo data/library, sem SSR) | Se a migração da v7 trouxer bloqueio, manter 7.18.x |
+| Rotas | `react-router` | **7.18.5** (modo data, sem SSR) | A 8.x exige Node ≥ 22.22; a máquina de desenvolvimento tem 22.20. Reavaliar ao atualizar o Node |
+| Lint | `eslint` + `@eslint/js` | 10.14.0 / 10.0.1 | `eslint-plugin-jsx-a11y` 6.10.2 declara suporte só até o ESLint 9; validado no ESLint 10 (detecta as violações) e liberado via `overrides` no `package.json`. A 9.x já está sem suporte |
+| Testes DOM | `jsdom` | 27.4.0 | A 31.x exige Node ≥ 22.22 |
 | Backend | `@supabase/supabase-js` | 2.119.x | |
 | Dados remotos | `@tanstack/react-query` | 5.107.x | Cache, invalidação, otimismo do Kanban |
 | Formulários | `react-hook-form` + `zod` + `@hookform/resolvers` | 7.91 / 4.6 / 7.0 | Zod também nas Edge Functions (via `npm:` no Deno) |

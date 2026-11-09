@@ -1,0 +1,5 @@
+/* Fontes do admin: carregadas apenas no chunk administrativo (self-hosted, LGPD/CSP). */
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
