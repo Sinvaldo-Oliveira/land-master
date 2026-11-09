@@ -13,6 +13,7 @@ export type FieldDef =
     }
   | { kind: 'textarea'; key: string; label: string; max: number; optional?: boolean; rows?: number; hint?: string }
   | { kind: 'link'; key: string; label: string; optional?: boolean }
+  | { kind: 'image'; key: string; label: string; hint?: string }
   | { kind: 'icon'; key: string; label: string }
   | { kind: 'select'; key: string; label: string; options: { value: string; label: string }[] }
   | {
@@ -209,14 +210,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     toneField,
     { kind: 'text', key: 'title', label: 'Título', max: 60 },
     { kind: 'text', key: 'subtitle', label: 'Subtítulo (ex.: local)', max: 120, optional: true },
-    {
-      kind: 'text',
-      key: 'imageUrl',
-      label: 'Endereço da imagem',
-      max: 500,
-      optional: true,
-      hint: 'Link https:// de uma imagem. Vazio = fundo de cor do tema.',
-    },
+    { kind: 'image', key: 'imageUrl', label: 'Upload da imagem' },
     { kind: 'text', key: 'imageAlt', label: 'Descrição da imagem (acessibilidade)', max: 160, optional: true },
     { kind: 'link', key: 'action', label: 'Botão' },
     { kind: 'link', key: 'corner', label: 'Ícone no canto (link)', optional: true },

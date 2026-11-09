@@ -194,3 +194,46 @@ test('faixa de diferenciais na prévia tem 6 colunas no computador', async ({ pa
   const columns = await preview(page).locator('ul.grid-cols-3').first().evaluate((ul) => getComputedStyle(ul).gridTemplateColumns.split(' ').length)
   expect(columns).toBe(6)
 })
+
+const PNG_HEAD = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52])
+
+test('imagem da seção é enviada do dispositivo e a URL pública é salva', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  const uploads: string[] = []
+  await page.route('https://e2etest.supabase.co/storage/v1/object/**', async (route) => {
+    // Só os envios (POST); a leitura pela URL pública também passa por aqui.
+    if (route.request().method() === 'POST') uploads.push(new URL(route.request().url()).pathname)
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: 'site-media/x' }) })
+  })
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+
+  await page.getByLabel('Upload da imagem').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: PNG_HEAD })
+  await expect(page.getByRole('button', { name: 'Remover imagem' })).toBeVisible()
+  expect(uploads).toHaveLength(1)
+  expect(uploads[0]).toMatch(/^\/storage\/v1\/object\/site-media\/\d{4}\/\d{2}\/[0-9a-f-]+\.png$/)
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})
+
+test('arquivo com extensão de imagem mas conteúdo inválido é recusado sem enviar', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  let uploaded = false
+  await page.route('https://e2etest.supabase.co/storage/v1/object/**', async (route) => {
+    uploaded = true
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+  })
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: 'Nova seção de imagem' }).click()
+
+  await page.getByLabel('Upload da imagem').setInputFiles({
+    name: 'falsa.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('<script>alert(1)</script>'),
+  })
+  await expect(page.getByText('O conteúdo do arquivo não é uma imagem desse tipo.')).toBeVisible()
+  expect(uploaded).toBe(false)
+})

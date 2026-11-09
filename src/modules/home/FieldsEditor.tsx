@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import { Button, Field, fieldDescribedBy, Input, Select, Switch, Textarea } from '@/admin/ui'
 import { safeHref } from '@/renderer/safe-href'
 import { iconOptions, type FieldDef } from './section-fields'
+import { ImageField } from './ImageField'
 
 type Data = Record<string, unknown>
 
@@ -101,6 +102,17 @@ function FieldControl({
         </Field>
       )
     }
+
+    case 'image':
+      return (
+        <ImageField
+          id={id}
+          label={field.label}
+          hint={field.hint}
+          value={typeof value === 'string' ? value : ''}
+          onChange={onChange}
+        />
+      )
 
     case 'link': {
       const link = (value ?? null) as { label: string; href: string } | null
