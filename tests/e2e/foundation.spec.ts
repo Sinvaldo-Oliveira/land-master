@@ -6,16 +6,37 @@ import { expect, test } from '@playwright/test'
  */
 
 test.describe('site público', () => {
-  test('mostra o estado honesto de configuração e não carrega código do admin', async ({ page }) => {
+  test('Home institucional carrega sem código do admin', async ({ page }) => {
     const adminChunks: string[] = []
     page.on('request', (req) => {
       if (/\/assets\/(AdminRoot|ProtectedLayout|ui|LoginPage)-/.test(req.url())) adminChunks.push(req.url())
     })
 
     await page.goto('/')
-    await expect(page.getByRole('heading', { level: 1, name: 'Site em configuração' })).toBeVisible()
-    await expect(page).toHaveTitle('Site em configuração')
+    await expect(page.getByRole('heading', { level: 1, name: /Soluções sob medida/ })).toBeVisible()
+    await expect(page).toHaveTitle(/Soluções sob medida/)
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /Atendimento próximo/)
     expect(adminChunks, 'o visitante não deve baixar chunks do admin').toEqual([])
+  })
+
+  test('menu leva às seções da Home', async ({ page }) => {
+    await page.goto('/')
+    const desktop = (page.viewportSize()?.width ?? 0) >= 1024
+    if (!desktop) await page.getByRole('button', { name: 'Abrir menu' }).click()
+    const nav = page.getByRole('navigation', { name: desktop ? 'Principal' : 'Principal (celular)' })
+    await nav.getByRole('link', { name: 'Como trabalhamos' }).click()
+    await expect(page).toHaveURL(/#processo$/)
+    await expect(page.getByRole('heading', { level: 2, name: 'Um processo simples, do começo ao fim' })).toBeInViewport()
+    if (!desktop) await expect(page.getByRole('button', { name: 'Abrir menu' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  test('Home sem rolagem horizontal e captura para revisão visual', async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/')
+    await page.evaluate(() => document.fonts.ready)
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
+    await page.screenshot({ path: testInfo.outputPath(`home-${testInfo.project.name}.png`), fullPage: true })
   })
 
   test('rota pública inexistente mostra 404 com o layout do site', async ({ page }) => {

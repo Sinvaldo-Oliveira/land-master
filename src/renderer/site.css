@@ -1,0 +1,106 @@
+/*
+ * Estilos do renderizador público. Carregado só pelo site (nunca pelo admin).
+ * Fontes self-hosted (OFL): Sora (títulos) e Plus Jakarta Sans (texto).
+ * O navegador baixa apenas os subconjuntos usados (unicode-range).
+ */
+@import "@fontsource-variable/sora/wght.css";
+@import "@fontsource-variable/plus-jakarta-sans/wght.css";
+
+.site-root {
+  background: var(--site-background);
+  color: var(--site-foreground);
+  font-family: var(--site-font-body);
+  line-height: 1.6;
+}
+
+.site-root :where(h1, h2, h3, h4) {
+  font-family: var(--site-font-heading);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.site-root :where(p) {
+  text-wrap: pretty;
+}
+
+.site-root :focus-visible {
+  outline: 2px solid var(--site-ring);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Âncoras não ficam escondidas atrás do cabeçalho fixo */
+.site-root [id] {
+  scroll-margin-top: 5.5rem;
+}
+
+html:has(.site-root) {
+  scroll-behavior: smooth;
+}
+
+/* Texto com gradiente para o trecho destacado do título (contraste garantido pela cor sólida de fallback) */
+.site-gradient-text {
+  color: var(--site-primary);
+  background: linear-gradient(100deg, var(--site-primary) 10%, var(--site-accent) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Fundos decorativos */
+.site-grid-bg {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--site-foreground) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--site-foreground) 7%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+}
+
+.site-glow {
+  background:
+    radial-gradient(40% 45% at 75% 30%, color-mix(in srgb, var(--site-primary) 22%, transparent), transparent 70%),
+    radial-gradient(35% 40% at 20% 75%, color-mix(in srgb, var(--site-accent) 16%, transparent), transparent 70%);
+}
+
+/* Animação de entrada (CSS-first). Só esconde o conteúdo quando o JS está ativo (.site-motion). */
+.site-motion [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 700ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: calc(var(--reveal-index, 0) * 90ms);
+}
+
+.site-motion [data-reveal][data-revealed] {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes site-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.site-float {
+  animation: site-float 6s ease-in-out infinite;
+}
+
+.site-float-delayed {
+  animation: site-float 7s ease-in-out 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-motion [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .site-float,
+  .site-float-delayed {
+    animation: none;
+  }
+  html:has(.site-root) {
+    scroll-behavior: auto;
+  }
+}

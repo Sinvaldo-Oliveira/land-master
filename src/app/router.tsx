@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react'
 import { createBrowserRouter, type RouteObject } from 'react-router'
+import { HomePage } from '@/public-site/HomePage'
 import { NotFoundPage } from '@/public-site/NotFoundPage'
 import { PublicShell } from '@/public-site/PublicShell'
-import { SiteSetupPage } from '@/public-site/SiteSetupPage'
 
 /** Carrega um módulo com export default sob demanda (um chunk por página). */
 function page(loader: () => Promise<{ default: ComponentType }>): RouteObject['lazy'] {
@@ -16,7 +16,7 @@ export const routes: RouteObject[] = [
   {
     element: <PublicShell />,
     children: [
-      { index: true, element: <SiteSetupPage /> },
+      { index: true, element: <HomePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

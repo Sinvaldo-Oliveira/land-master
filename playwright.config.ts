@@ -39,18 +39,31 @@ export default defineConfig({
       use: { ...devices['Pixel 7'], baseURL: `http://localhost:${SHELL_PORT}` },
     },
   ],
+  // Os builds de teste NÃO dependem do .env de quem está desenvolvendo: as variáveis do processo
+  // têm prioridade sobre os arquivos .env no Vite. "<...>" é tratado como ausente por src/lib/env.ts
+  // (no Windows uma variável vazia é removida em vez de sobrescrever o .env).
   webServer: [
     {
       command: `npx vite build && npx vite preview --port ${PUBLIC_PORT} --strictPort`,
       url: `http://localhost:${PUBLIC_PORT}`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      env: {
+        VITE_SUPABASE_URL: '<nao-configurado>',
+        VITE_SUPABASE_PUBLISHABLE_KEY: '<nao-configurado>',
+        VITE_APP_NAME: 'Painel de Vendas',
+      },
     },
     {
       command: `npx vite build --mode e2e --outDir dist-e2e && npx vite preview --mode e2e --outDir dist-e2e --port ${SHELL_PORT} --strictPort`,
       url: `http://localhost:${SHELL_PORT}`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      env: {
+        VITE_SUPABASE_URL: 'https://e2etest.supabase.co',
+        VITE_SUPABASE_PUBLISHABLE_KEY: 'e2e-chave-publica-ficticia',
+        VITE_APP_NAME: 'Painel de Vendas',
+      },
     },
   ],
 })

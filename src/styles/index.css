@@ -71,6 +71,30 @@
   }
 }
 
+/*
+ * Tokens do SITE PÚBLICO — valores definidos em tempo de execução pelo tema da página
+ * (src/renderer/theme.ts) no .site-root e nas seções escuras. Ver docs/DESIGN_SYSTEM.md, Parte B.
+ */
+@theme inline {
+  --color-site-background: var(--site-background);
+  --color-site-foreground: var(--site-foreground);
+  --color-site-primary: var(--site-primary);
+  --color-site-primary-foreground: var(--site-primary-foreground);
+  --color-site-accent: var(--site-accent);
+  --color-site-accent-foreground: var(--site-accent-foreground);
+  --color-site-muted: var(--site-muted);
+  --color-site-muted-foreground: var(--site-muted-foreground);
+  --color-site-card: var(--site-card);
+  --color-site-border: var(--site-border);
+  --color-site-ring: var(--site-ring);
+
+  --font-site-heading: var(--site-font-heading);
+  --font-site-body: var(--site-font-body);
+
+  --radius-site: var(--site-radius);
+  --radius-site-lg: calc(var(--site-radius) * 1.6);
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;

@@ -191,6 +191,9 @@ Convertido em `--background`, `--foreground`, `--primary`, …, `--radius`, `--f
 | **Papel** | claro | Instrument Serif / Inter Tight | marfim, tinta, um acento terracota, bordas finas, muito espaço | consultorias, escritórios, saúde |
 | **Sinal** | claro com seções pretas | Archivo (Expanded) / Archivo | branco e preto de alto contraste, acento amarelo-sinal, raio zero | varejo, promoções, eventos |
 | **Terra** | claro quente | Fraunces / Manrope | areia, verde-oliva, cantos arredondados, fotos em destaque | alimentação, estética, bem-estar |
+| **Horizonte** ✅ | claro com seções azul-noite | Sora / Plus Jakarta Sans | branco, acento cobalto→ciano, grade e brilho suaves, cartões com borda fina | institucional, serviços, empresas B2B |
+
+**Horizonte** é o primeiro preset implementado (2026-11-09), usado pelo template **Institucional** (`src/renderer/templates/institucional.ts`). Contrastes AA verificados em `src/renderer/theme.test.ts`. Inspirado nos modelos institucionais enviados pelo responsável: hero claro com destaque em gradiente, cartões de serviço, faixa escura de processo, CTA em gradiente e rodapé escuro. Nenhum número, depoimento ou cliente fictício.
 
 Fontes curadas (self-hosted, `woff2`, só as usadas são carregadas): Bricolage Grotesque, Geist, Instrument Serif, Inter Tight, Archivo, Fraunces, Manrope, DM Serif Display, Plus Jakarta Sans, Sora, Playfair Display, Work Sans.
 
