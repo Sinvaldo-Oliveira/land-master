@@ -44,6 +44,14 @@ const section = z.discriminatedUnion('type', [
   z.object({
     ...base,
     type: z.literal('hero'),
+    imageUrl: z
+      .string()
+      .trim()
+      .max(500, 'Endereço da imagem: use no máximo 500 caracteres.')
+      .refine((v) => v === '' || /^https:\/\/\S+$/.test(v), 'Imagem: use um endereço que comece com https://.')
+      .optional(),
+    imageAlt: optionalText('Descrição da imagem', 160),
+    imageSize: z.number().int().min(40, 'Tamanho da imagem: mínimo 40%.').max(100, 'Tamanho da imagem: máximo 100%.').optional(),
     tone,
     eyebrow: optionalText('Selo', 60),
     title: text('Título', 120),

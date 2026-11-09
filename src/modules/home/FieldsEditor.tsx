@@ -103,6 +103,24 @@ function FieldControl({
       )
     }
 
+    case 'range': {
+      const current = typeof value === 'number' ? value : field.max
+      return (
+        <Field label={`${field.label}: ${current}${field.unit}`} htmlFor={id}>
+          <input
+            id={id}
+            type="range"
+            min={field.min}
+            max={field.max}
+            step={field.step}
+            value={current}
+            onChange={(event) => onChange(Number(event.target.value))}
+            className="w-full accent-admin-accent"
+          />
+        </Field>
+      )
+    }
+
     case 'image':
       return (
         <ImageField

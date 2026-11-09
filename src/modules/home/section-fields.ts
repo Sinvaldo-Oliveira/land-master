@@ -14,6 +14,7 @@ export type FieldDef =
   | { kind: 'textarea'; key: string; label: string; max: number; optional?: boolean; rows?: number; hint?: string }
   | { kind: 'link'; key: string; label: string; optional?: boolean }
   | { kind: 'image'; key: string; label: string; hint?: string }
+  | { kind: 'range'; key: string; label: string; min: number; max: number; step: number; unit: string }
   | { kind: 'icon'; key: string; label: string }
   | { kind: 'select'; key: string; label: string; options: { value: string; label: string }[] }
   | {
@@ -113,6 +114,9 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     },
     { kind: 'textarea', key: 'subtitle', label: 'Subtítulo', max: 300, rows: 3 },
     { kind: 'link', key: 'primary', label: 'Botão principal' },
+    { kind: 'image', key: 'imageUrl', label: 'Imagem do destaque', hint: 'Opcional. Substitui a ilustração padrão. Sem imagem, aparece a ilustração.' },
+    { kind: 'text', key: 'imageAlt', label: 'Descrição da imagem (acessibilidade)', max: 160, optional: true },
+    { kind: 'range', key: 'imageSize', label: 'Tamanho da imagem', min: 40, max: 100, step: 5, unit: '%' },
     { kind: 'link', key: 'secondary', label: 'Botão secundário', optional: true },
     {
       kind: 'list', key: 'points', label: 'Diferenciais', itemLabel: 'Diferencial', max: 12,

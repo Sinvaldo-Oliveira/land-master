@@ -1,4 +1,5 @@
-import { revealDelay } from '../context'
+import { revealDelay, useSiteTheme } from '../context'
+import { useTilt } from '../tilt'
 import { CircleCheck } from 'lucide-react'
 import { ActionLink, Container, IconTile, SectionShell } from '../primitives'
 import { splitHighlight } from '../safe-href'
@@ -51,7 +52,11 @@ export function Hero({ section }: { section: HeroSection }) {
 
         </div>
 
-        <HeroVisual />
+        {section.imageUrl?.trim() ? (
+          <HeroImage url={section.imageUrl.trim()} alt={section.imageAlt?.trim() || section.title} size={section.imageSize ?? 100} />
+        ) : (
+          <HeroVisual />
+        )}
       </Container>
 
       {section.points.length > 0 ? (
@@ -134,6 +139,27 @@ function HeroVisual() {
           {['from-site-primary to-site-accent', 'from-[#f59e0b] to-[#ef4444]', 'from-[#10b981] to-[#0891b2]'].map((g) => (
             <span key={g} className={`size-8 rounded-full border-2 border-site-card bg-gradient-to-br ${g}`} />
           ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Imagem do destaque (quando enviada): largura ajustável e inclinação 3D com o mouse. */
+function HeroImage({ url, alt, size }: { url: string; alt: string; size: number }) {
+  const theme = useSiteTheme()
+  const tilt = useTilt(theme.motion !== 'none')
+  return (
+    <div data-reveal style={{ ...revealDelay(2), perspective: '1200px' }} className="relative mx-auto w-full">
+      <div className="mx-auto" style={{ width: `${size}%` }}>
+        <div {...tilt.handlers} style={tilt.style} className="relative">
+          <img
+            src={url}
+            alt={alt}
+            loading="lazy"
+            decoding="async"
+            className="block aspect-[4/3] w-full rounded-site-lg object-cover shadow-[0_40px_80px_-30px_rgb(11_19_36/0.45)] ring-1 ring-site-border"
+          />
         </div>
       </div>
     </div>

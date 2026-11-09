@@ -118,3 +118,21 @@ describe('nova seção de imagem', () => {
     expect(validateDocument(bad).some((issue) => issue.sectionId === id)).toBe(true)
   })
 })
+
+describe('imagem do destaque: validação', () => {
+  const heroWith = (patch: Record<string, unknown>) => ({
+    ...doc,
+    sections: doc.sections.map((s) => (s.type === 'hero' ? { ...s, ...patch } : s)),
+  })
+
+  it('aceita tamanho entre 40% e 100% e rejeita fora disso', () => {
+    expect(validateDocument(heroWith({ imageSize: 60 }))).toEqual([])
+    expect(validateDocument(heroWith({ imageSize: 30 })).some((i) => i.sectionId === 'hero')).toBe(true)
+    expect(validateDocument(heroWith({ imageSize: 120 })).some((i) => i.sectionId === 'hero')).toBe(true)
+  })
+
+  it('rejeita endereço de imagem que não seja https', () => {
+    expect(validateDocument(heroWith({ imageUrl: 'http://x.com/a.jpg' })).some((i) => i.sectionId === 'hero')).toBe(true)
+    expect(validateDocument(heroWith({ imageUrl: '' }))).toEqual([])
+  })
+})

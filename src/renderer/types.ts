@@ -75,6 +75,11 @@ export type HeroSection = SectionBase & {
   primary: LinkItem
   secondary?: LinkItem
   points: { icon: IconName; label: string }[]
+  /** Imagem que substitui a ilustração padrão do destaque. Vazio = ilustração. */
+  imageUrl?: string
+  imageAlt?: string
+  /** Largura da imagem em % da coluna (40 a 100). */
+  imageSize?: number
 }
 
 export type FeaturesSection = SectionBase & {

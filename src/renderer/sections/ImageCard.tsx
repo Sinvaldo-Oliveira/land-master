@@ -1,12 +1,9 @@
 import { ArrowUpRight } from 'lucide-react'
-import { useState, type CSSProperties, type PointerEvent } from 'react'
 import { revealDelay, useSiteTheme } from '../context'
 import { Container, SectionShell } from '../primitives'
 import { isExternal, safeHref } from '../safe-href'
+import { useTilt } from '../tilt'
 import type { ImageCardSection } from '../types'
-
-/** Inclinação máxima em graus, em cada eixo. */
-const MAX_TILT = 10.5
 
 /**
  * Cartão com imagem que inclina em 3D conforme o mouse se move sobre ele.
@@ -16,23 +13,9 @@ const MAX_TILT = 10.5
 export function ImageCard({ section }: { section: ImageCardSection }) {
   const theme = useSiteTheme()
   const titleId = `${section.id}-title`
-  const [tilt, setTilt] = useState({ x: 0, y: 0, active: false })
   const tiltEnabled = theme.motion !== 'none'
+  const tilt = useTilt(tiltEnabled)
 
-  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (!tiltEnabled || event.pointerType !== 'mouse') return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const px = (event.clientX - rect.left) / rect.width - 0.5
-    const py = (event.clientY - rect.top) / rect.height - 0.5
-    setTilt({ x: -py * 2 * MAX_TILT, y: px * 2 * MAX_TILT, active: true })
-  }
-  const reset = () => setTilt({ x: 0, y: 0, active: false })
-
-  const card: CSSProperties = {
-    transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-    transformStyle: 'preserve-3d',
-    transition: tilt.active ? 'transform 120ms linear' : 'transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-  }
   const hasImage = section.imageUrl.trim() !== ''
   const action = safeHref(section.action.href)
   const corner = section.corner ? safeHref(section.corner.href) : null
@@ -42,9 +25,8 @@ export function ImageCard({ section }: { section: ImageCardSection }) {
       <Container className="flex justify-center">
         <div data-reveal style={{ ...revealDelay(1), perspective: '1000px' }}>
           <div
-            onPointerMove={onPointerMove}
-            onPointerLeave={reset}
-            style={card}
+            {...tilt.handlers}
+            style={tilt.style}
             className="relative h-[26rem] w-[min(20rem,88vw)] rounded-site-lg shadow-[0_40px_80px_-30px_rgb(11_19_36/0.45)]"
           >
             {/* Base: imagem (ou fundo de cor) e véu escuro para o texto ler bem */}
