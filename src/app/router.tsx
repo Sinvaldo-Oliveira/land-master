@@ -35,7 +35,13 @@ export const routes: RouteObject[] = [
         lazy: page(() => import('@/admin/layouts/ProtectedLayout')),
         children: [
           { index: true, lazy: page(() => import('@/modules/dashboard/DashboardPage')) },
-          { path: 'contatos/*', lazy: page(() => import('@/modules/contacts/ContactsPage')) },
+          {
+            path: 'contatos',
+            children: [
+              { index: true, lazy: page(() => import('@/modules/contacts/ContactsPage')) },
+              { path: ':id', lazy: page(() => import('@/modules/contacts/ContactDetailPage')) },
+            ],
+          },
           { path: 'crm/*', lazy: page(() => import('@/modules/crm/CrmPage')) },
           { path: 'relatorios/*', lazy: page(() => import('@/modules/reports/ReportsPage')) },
           { path: 'site/*', lazy: page(() => import('@/modules/home/HomeEditorPage')) },

@@ -48,7 +48,6 @@ test('navegar pelo menu abre o módulo e marca o item ativo', async ({ page }) =
   await nav.getByRole('link', { name: 'Contatos' }).click()
   await expect(page).toHaveURL(/\/admin\/contatos$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Contatos' })).toBeVisible()
-  await expect(page.getByText('Este módulo será entregue na Fase 3 do plano de desenvolvimento.')).toBeVisible()
 
   if (isDesktop(page)) {
     await expect(nav.getByRole('link', { name: 'Contatos' })).toHaveAttribute('aria-current', 'page')
