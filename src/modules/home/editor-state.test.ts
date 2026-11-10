@@ -5,6 +5,7 @@ import { HIGHLIGHT_ERROR, highlightInTitle, sectionName } from './section-fields
 import {
   addImageSection,
   addInteractiveHeroSection,
+  addVideoCarouselSection,
   contrastWarnings,
   getBrandName,
   moveSection,
@@ -181,5 +182,29 @@ describe('logo do cabeçalho: validação', () => {
   it('recusa altura fora do limite e endereço sem https', () => {
     expect(validateDocument(headerWith({ logoHeight: 100 })).some((i) => i.sectionId === 'header')).toBe(true)
     expect(validateDocument(headerWith({ logoUrl: 'http://x.com/logo.png' })).some((i) => i.sectionId === 'header')).toBe(true)
+  })
+})
+
+describe('nova seção: carrossel de vídeos', () => {
+  it('cria "Carrossel de Video 01" antes do rodapé, com 3 vídeos e conteúdo padrão válido', () => {
+    const { doc: next, id } = addVideoCarouselSection(doc)
+    const index = next.sections.findIndex((x) => x.id === id)
+    const created = next.sections[index]!
+    expect(next.sections[index + 1]?.type).toBe('site-footer')
+    expect(sectionName(created)).toBe('Carrossel de Video 01')
+    expect(created.type === 'video-carousel' && created.items).toHaveLength(3)
+    expect(validateDocument(next)).toEqual([])
+  })
+
+  it('aceita link do YouTube e recusa outros links', () => {
+    const { doc: next, id } = addVideoCarouselSection(doc)
+    const withVideo = (videoUrl: string) => ({
+      ...next,
+      sections: next.sections.map((x) =>
+        x.id === id && x.type === 'video-carousel' ? { ...x, items: x.items.map((it, i) => (i === 0 ? { ...it, videoUrl } : it)) } : x,
+      ),
+    })
+    expect(validateDocument(withVideo('https://youtu.be/hEJnMQG9ev8'))).toEqual([])
+    expect(validateDocument(withVideo('https://vimeo.com/123')).some((i) => i.sectionId === id)).toBe(true)
   })
 })

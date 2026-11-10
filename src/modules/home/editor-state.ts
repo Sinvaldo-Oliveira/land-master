@@ -92,6 +92,23 @@ function insertBeforeFooter(doc: PageDocument, section: Section): { doc: PageDoc
   return { doc: { ...doc, sections }, id: section.id }
 }
 
+/** Cria o carrossel de vídeos ("Carrossel de Video 01") antes do rodapé, com 3 itens a preencher. */
+export function addVideoCarouselSection(doc: PageDocument, name = 'Carrossel de Video 01'): { doc: PageDocument; id: string } {
+  return insertBeforeFooter(doc, {
+    id: `carrossel-${Date.now().toString(36)}`,
+    type: 'video-carousel',
+    name,
+    tone: 'dark',
+    eyebrow: 'Vídeos',
+    title: 'Assista e conheça',
+    subtitle: '',
+    format: 'poster',
+    autoplay: 'off',
+    intervalSeconds: 6,
+    items: [1, 2, 3].map((n) => ({ image: '', title: `Título do vídeo ${n}`, subtitle: 'Tema · duração', description: '', videoUrl: '' })),
+  })
+}
+
 /**
  * Cria o hero interativo ("Imagem Hiro 02") antes do rodapé.
  * Posições padrão do quadro de 1440×810; mídias vazias até o usuário enviar.

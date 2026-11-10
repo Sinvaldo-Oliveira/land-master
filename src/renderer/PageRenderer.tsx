@@ -17,6 +17,7 @@ import './site.css'
 
 // Seção pesada (vídeo, cursor, fontes próprias): só baixa quando a página tiver esta seção.
 const InteractiveHero = lazy(() => import('./sections/InteractiveHero'))
+const VideoCarousel = lazy(() => import('./sections/VideoCarousel'))
 
 /**
  * Desenha um PageDocument. Este módulo é do site público:
@@ -75,6 +76,12 @@ function SectionView({ section, brandName }: { section: Section; brandName: stri
       return <Contact section={section} />
     case 'image-card':
       return <ImageCard section={section} />
+    case 'video-carousel':
+      return (
+        <Suspense fallback={<div aria-hidden="true" className="min-h-[640px] bg-site-background" />}>
+          <VideoCarousel section={section} />
+        </Suspense>
+      )
     case 'interactive-hero':
       return (
         <Suspense fallback={<div aria-hidden="true" className="h-svh min-h-[560px] bg-[#02040d]" />}>

@@ -1,0 +1,284 @@
+/*
+ * Carrossel de vídeos (seção "video-carousel"). Carregado sob demanda com o componente.
+ * Usa as cores do tema da página (--site-*), então combina com o resto do site.
+ */
+.vc-stage {
+  position: relative;
+  height: clamp(340px, 52vh, 520px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1100px;
+  transform-style: preserve-3d;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+.vc-stage[data-dragging] {
+  cursor: grabbing;
+}
+.vc-floor {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: min(600px, 80%);
+  height: 35px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgb(0 0 0 / 0.45), transparent 70%);
+  filter: blur(12px);
+  pointer-events: none;
+}
+.vc-card {
+  position: absolute;
+  width: var(--vc-card-width);
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--site-border);
+  border-radius: 14px;
+  background: var(--site-card);
+  box-shadow: 0 18px 32px rgb(0 0 0 / 0.35);
+  backface-visibility: hidden;
+  transition:
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.5s ease;
+  will-change: transform;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.vc-stage[data-dragging] .vc-card {
+  transition: none;
+}
+.vc-card[data-active] {
+  box-shadow: 0 22px 44px rgb(0 0 0 / 0.5), 0 0 40px color-mix(in srgb, var(--site-primary) 18%, transparent);
+}
+.vc-card:focus-visible {
+  outline: 2px solid var(--site-ring);
+  outline-offset: 6px;
+}
+.vc-poster {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 9px;
+  background: var(--site-muted);
+}
+.vc-stage[data-format="wide"] .vc-poster {
+  aspect-ratio: 16 / 9;
+}
+.vc-poster > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.vc-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+  font-weight: 600;
+  background: linear-gradient(160deg, var(--site-primary), color-mix(in srgb, var(--site-accent) 70%, #000));
+  color: #fff;
+}
+.vc-shade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: var(--vc-shade, 0);
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.vc-watch {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.vc-card[data-active] .vc-watch {
+  opacity: 1;
+}
+.vc-card[data-active]:hover .vc-watch {
+  background: var(--site-primary);
+  color: var(--site-primary-foreground);
+}
+
+.vc-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  text-align: center;
+}
+.vc-active-title {
+  margin: 0;
+  font-family: var(--site-font-heading);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.vc-active-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--site-muted-foreground);
+}
+.vc-dock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 7px 5px 19px;
+  border: 1px solid var(--site-border);
+  border-radius: 40px;
+  background: color-mix(in srgb, var(--site-card) 88%, transparent);
+  backdrop-filter: blur(16px);
+}
+.vc-position {
+  padding-right: 15px;
+  border-right: 1px solid var(--site-border);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--site-muted-foreground);
+}
+.vc-position strong {
+  color: var(--site-foreground);
+  font-weight: 600;
+}
+.vc-dock button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--site-foreground);
+  cursor: pointer;
+  transition: background 0.16s;
+}
+.vc-dock button:hover,
+.vc-dock .vc-play {
+  background: color-mix(in srgb, var(--site-foreground) 10%, transparent);
+}
+.vc-dock button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.vc-dock button:focus-visible {
+  outline: 2px solid var(--site-ring);
+  outline-offset: 3px;
+}
+.vc-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--site-muted-foreground);
+}
+
+.vc-dialog {
+  /* O reset do Tailwind zera margens; o <dialog> modal precisa de margin:auto para centralizar. */
+  margin: auto;
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100svh - 32px);
+  padding: 13px;
+  border: 1px solid var(--site-border);
+  border-radius: 16px;
+  background: var(--site-card);
+  color: var(--site-foreground);
+  box-shadow: 0 30px 100px rgb(0 0 0 / 0.55);
+}
+.vc-dialog::backdrop {
+  background: rgb(0 0 0 / 0.72);
+  backdrop-filter: blur(10px);
+}
+.vc-dialog-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 3px 12px;
+  font-size: 12px;
+  color: var(--site-muted-foreground);
+}
+.vc-dialog-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid var(--site-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--site-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+.vc-player {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #000;
+}
+.vc-player > iframe,
+.vc-player > img {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+}
+.vc-dialog-caption {
+  padding: 18px 5px 6px;
+}
+.vc-dialog-caption h3 {
+  margin: 0 0 6px;
+  font-family: var(--site-font-heading);
+  font-size: 22px;
+  font-weight: 600;
+}
+.vc-dialog-caption p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--site-muted-foreground);
+}
+
+@media (max-width: 600px) {
+  .vc-stage {
+    perspective: 900px;
+  }
+  .vc-active-title {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-card,
+  .vc-shade,
+  .vc-watch {
+    transition: none;
+  }
+}

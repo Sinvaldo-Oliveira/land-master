@@ -1,3 +1,4 @@
+import { youtubeId } from '@/renderer/sections/video-carousel-utils'
 import type { IconName, Section } from '@/renderer/types'
 
 export type FieldDef =
@@ -51,6 +52,7 @@ export const sectionLabels: Record<Section['type'], string> = {
   'site-footer': 'Rodapé',
   'image-card': 'Imagem',
   'interactive-hero': 'Hero interativo',
+  'video-carousel': 'Carrossel de vídeos',
 }
 
 export const iconOptions: { value: IconName; label: string }[] = [
@@ -243,6 +245,56 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     { kind: 'text', key: 'imageAlt', label: 'Descrição da imagem (acessibilidade)', max: 160, optional: true },
     { kind: 'link', key: 'action', label: 'Botão' },
     { kind: 'link', key: 'corner', label: 'Ícone no canto (link)', optional: true },
+  ],
+  'video-carousel': [
+    { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },
+    toneField,
+    eyebrow,
+    { kind: 'text', key: 'title', label: 'Título', max: 80 },
+    { kind: 'text', key: 'subtitle', label: 'Subtítulo', max: 160, optional: true },
+    {
+      kind: 'select',
+      key: 'format',
+      label: 'Formato dos cartões',
+      options: [
+        { value: 'poster', label: 'Pôster (vertical, 2:3)' },
+        { value: 'wide', label: 'Vídeo (horizontal, 16:9)' },
+      ],
+    },
+    {
+      kind: 'select',
+      key: 'autoplay',
+      label: 'Avançar sozinho',
+      options: [
+        { value: 'off', label: 'Não' },
+        { value: 'on', label: 'Sim (pausa ao passar o mouse)' },
+      ],
+    },
+    { kind: 'range', key: 'intervalSeconds', label: 'Tempo entre avanços', min: 3, max: 15, step: 1, unit: ' s' },
+    {
+      kind: 'list',
+      key: 'items',
+      label: 'Vídeos',
+      itemLabel: 'Vídeo',
+      min: 1,
+      max: 12,
+      fields: [
+        { kind: 'image', key: 'image', label: 'Pôster', hint: 'Imagem do cartão. Sem pôster, o cartão mostra o título sobre a cor da marca.' },
+        { kind: 'text', key: 'title', label: 'Título', max: 80 },
+        { kind: 'text', key: 'subtitle', label: 'Subtítulo (ex.: tema · duração)', max: 80, optional: true },
+        { kind: 'textarea', key: 'description', label: 'Descrição (aparece com o vídeo)', max: 300, optional: true, rows: 2 },
+        {
+          kind: 'text',
+          key: 'videoUrl',
+          label: 'Link do YouTube',
+          max: 300,
+          optional: true,
+          hint: 'Ex.: https://www.youtube.com/watch?v=… ou https://youtu.be/…. O vídeo só carrega quando o visitante clica.',
+          check: (value) => (value.trim() && !youtubeId(value) ? 'Use um link do YouTube (youtube.com/watch?v=… ou youtu.be/…).' : undefined),
+        },
+      ],
+      create: () => ({ image: '', title: 'Novo vídeo', subtitle: '', description: '', videoUrl: '' }),
+    },
   ],
   'interactive-hero': [
     { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },

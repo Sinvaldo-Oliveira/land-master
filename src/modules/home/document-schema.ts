@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { safeHref } from '@/renderer/safe-href'
+import { youtubeId } from '@/renderer/sections/video-carousel-utils'
 import type { PageDocument } from '@/renderer/types'
 
 /**
@@ -176,6 +177,35 @@ const section = z.discriminatedUnion('type', [
     imageAlt: optionalText('Descrição da imagem', 160),
     action: link,
     corner: link.optional(),
+  }),
+  z.object({
+    ...base,
+    type: z.literal('video-carousel'),
+    tone,
+    eyebrow: optionalText('Selo', 60),
+    title: text('Título', 80),
+    subtitle: optionalText('Subtítulo', 160),
+    format: z.enum(['poster', 'wide']),
+    autoplay: z.enum(['on', 'off']),
+    intervalSeconds: z.number().int().min(3, 'Tempo entre avanços: mínimo 3 s.').max(15, 'Tempo entre avanços: máximo 15 s.'),
+    items: z
+      .array(
+        z.object({
+          image: httpsOrEmpty('Pôster'),
+          imageAlt: optionalText('Descrição do pôster', 160),
+          title: text('Título do vídeo', 80),
+          subtitle: optionalText('Subtítulo do vídeo', 80),
+          description: optionalText('Descrição do vídeo', 300),
+          videoUrl: z
+            .string()
+            .trim()
+            .max(300, 'Link do vídeo: use no máximo 300 caracteres.')
+            .refine((v) => v === '' || youtubeId(v) !== null, 'Link do vídeo: use um link do YouTube (youtube.com/watch?v=… ou youtu.be/…).')
+            .optional(),
+        }),
+      )
+      .min(1, 'Inclua pelo menos 1 vídeo.')
+      .max(12, 'No máximo 12 vídeos.'),
   }),
   z.object({
     ...base,

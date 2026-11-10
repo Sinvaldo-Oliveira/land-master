@@ -37,6 +37,7 @@ import {
   getBrandName,
   addImageSection,
   addInteractiveHeroSection,
+  addVideoCarouselSection,
   isMovable,
   MAX_SECTIONS,
   moveSection,
@@ -256,7 +257,12 @@ function Editor({ initial }: { initial: HomePage }) {
                 onToggle={(id) => setDoc((d) => toggleHidden(d, id))}
                 onMove={(id, dir) => setDoc((d) => moveSection(d, id, dir))}
                 onAdd={(kind) => {
-                  const { doc: next, id } = kind === 'interactive-hero' ? addInteractiveHeroSection(doc) : addImageSection(doc)
+                  const { doc: next, id } =
+                    kind === 'interactive-hero'
+                      ? addInteractiveHeroSection(doc)
+                      : kind === 'video-carousel'
+                        ? addVideoCarouselSection(doc)
+                        : addImageSection(doc)
                   setDoc(() => next)
                   setSelection({ kind: 'section', id })
                   setFocus(id)
@@ -384,7 +390,7 @@ function SectionList({
   onSelect: (section: Section) => void
   onToggle: (id: string) => void
   onMove: (id: string, direction: -1 | 1) => void
-  onAdd: (kind: 'image-card' | 'interactive-hero') => void
+  onAdd: (kind: 'image-card' | 'interactive-hero' | 'video-carousel') => void
 }) {
   return (
     // minmax(0,1fr): sem isso a coluna do grid cresce até o tamanho dos textos com reticências.
@@ -417,6 +423,7 @@ function SectionList({
             <DropdownMenuContent>
               <DropdownMenuItem onSelect={() => onAdd('image-card')}>Cartão de imagem 3D</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onAdd('interactive-hero')}>Hero interativo (mouse e botão)</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onAdd('video-carousel')}>Carrossel de vídeos</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

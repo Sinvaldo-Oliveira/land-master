@@ -410,3 +410,46 @@ test('cabeçalho: logo enviado substitui o nome; sem logo, o nome volta automati
   await expect(homeLink.locator('img')).toHaveCount(0)
   await expect(homeLink).toContainText('Sua Empresa')
 })
+
+test('cria "Carrossel de Video 01": navega na prévia e abre o vídeo do YouTube sem cookies', async ({ page }, testInfo) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await fakeMediaBackend(page)
+  // Nada sai para o YouTube durante o teste.
+  const youtube: string[] = []
+  await page.route(/youtube(-nocookie)?\.com/, async (route) => {
+    youtube.push(route.request().url())
+    await route.fulfill({ status: 200, contentType: 'text/html', body: '<p>player</p>' })
+  })
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await page.getByRole('button', { name: 'Nova seção' }).click()
+  await page.getByRole('menuitem', { name: 'Carrossel de vídeos' }).click()
+  await expect(page.getByRole('heading', { level: 2, name: 'Carrossel de Video 01' })).toBeVisible()
+
+  const frame = preview(page)
+  await expect(frame.getByRole('heading', { level: 2, name: 'Assista e conheça' })).toBeVisible()
+  const carousel = frame.getByRole('region', { name: 'Assista e conheça' })
+  await expect(carousel.getByRole('heading', { level: 3 })).toHaveText('Título do vídeo 1')
+  await frame.getByRole('button', { name: 'Próximo' }).click()
+  await expect(carousel.getByRole('heading', { level: 3 })).toHaveText('Título do vídeo 2')
+  await frame.getByRole('button', { name: 'Anterior' }).click()
+
+  // Link inválido é apontado no editor; link do YouTube é aceito
+  const link = page.getByLabel(/^Link do YouTube/).first()
+  await link.fill('https://vimeo.com/123')
+  await expect(page.getByText('Use um link do YouTube (youtube.com/watch?v=… ou youtu.be/…).').first()).toBeVisible()
+  await link.fill('https://youtu.be/hEJnMQG9ev8')
+  await expect(page.getByText('Use um link do YouTube (youtube.com/watch?v=… ou youtu.be/…).')).toHaveCount(0)
+
+  expect(youtube).toHaveLength(0) // nada carregado antes do clique
+  await frame.getByRole('button', { name: 'Assistir: Título do vídeo 1' }).click()
+  const player = frame.locator('dialog[open] iframe')
+  await expect(player).toHaveAttribute('src', /^https:\/\/www\.youtube-nocookie\.com\/embed\/hEJnMQG9ev8/)
+  await page.evaluate(() => document.fonts.ready)
+  await page.locator('iframe[title="Pré-visualização do site"]').screenshot({ path: testInfo.outputPath('carrossel-dialogo.png') })
+  await frame.getByRole('button', { name: /Fechar/ }).click()
+  await expect(frame.locator('dialog[open]')).toHaveCount(0)
+  await page.locator('iframe[title="Pré-visualização do site"]').screenshot({ path: testInfo.outputPath('carrossel.png') })
+})

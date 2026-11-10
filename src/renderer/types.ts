@@ -200,6 +200,32 @@ export type InteractiveHeroSection = SectionBase & {
   buttonSize: number
 }
 
+export type VideoCarouselItem = {
+  /** Pôster (upload). Vazio = cartão de cor com o título. */
+  image: string
+  imageAlt?: string
+  title: string
+  subtitle?: string
+  description?: string
+  /** Link do YouTube (watch, youtu.be, shorts). Abre num player sem cookies, só ao clicar. */
+  videoUrl?: string
+}
+
+/** Carrossel em perspectiva (coverflow) de vídeos, com pôsteres e player do YouTube. */
+export type VideoCarouselSection = SectionBase & {
+  type: 'video-carousel'
+  tone: SectionTone
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  /** poster = 2:3 (vertical); wide = 16:9 (miniatura de vídeo). */
+  format: 'poster' | 'wide'
+  autoplay: 'on' | 'off'
+  /** Tempo entre avanços automáticos, em segundos (3 a 15). */
+  intervalSeconds: number
+  items: VideoCarouselItem[]
+}
+
 export type FooterSection = SectionBase & {
   type: 'site-footer'
   brand: Brand
@@ -219,6 +245,7 @@ export type Section =
   | ContactSection
   | ImageCardSection
   | InteractiveHeroSection
+  | VideoCarouselSection
   | FooterSection
 
 export type PageDocument = {
