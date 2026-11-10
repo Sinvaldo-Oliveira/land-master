@@ -5,7 +5,7 @@ import type { StepsSection } from '../types'
 export function Steps({ section }: { section: StepsSection }) {
   const titleId = `${section.id}-title`
   return (
-    <SectionShell tone={section.tone} background={section.background} anchor={section.anchor} labelledBy={titleId}>
+    <SectionShell tone={section.tone} background={section.background} text={section.text} anchor={section.anchor} labelledBy={titleId}>
       <div aria-hidden="true" className="site-glow absolute inset-0 -z-10 opacity-80" />
       <div aria-hidden="true" className="site-grid-bg absolute inset-0 -z-10 opacity-60" />
       <Container>

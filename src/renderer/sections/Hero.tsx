@@ -10,7 +10,7 @@ export function Hero({ section }: { section: HeroSection }) {
   const titleId = `${section.id}-title`
 
   return (
-    <SectionShell tone={section.tone} background={section.background} anchor={section.anchor} labelledBy={titleId} className="pt-10! sm:pt-14! lg:pt-16!">
+    <SectionShell tone={section.tone} background={section.background} text={section.text} anchor={section.anchor} labelledBy={titleId} className="pt-10! sm:pt-14! lg:pt-16!">
       <div aria-hidden="true" className="site-glow absolute inset-0 -z-10" />
       <div aria-hidden="true" className="site-grid-bg absolute inset-0 -z-10" />
 

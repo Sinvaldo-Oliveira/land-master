@@ -4,7 +4,7 @@ import { useContext, useEffect, useId, useRef, useState } from 'react'
 import { SiteThemeContext } from '../context'
 import { ActionLink, BrandMark, Container } from '../primitives'
 import { safeHref } from '../safe-href'
-import { surfaceStyle } from '../surface'
+import { mergeStyles, surfaceStyle, textVars } from '../surface'
 import type { HeaderSection } from '../types'
 
 export function SiteHeader({ section }: { section: HeaderSection }) {
@@ -39,9 +39,10 @@ export function SiteHeader({ section }: { section: HeaderSection }) {
   return (
     <header
       ref={headerRef}
-      style={custom}
+      style={mergeStyles(custom, textVars(section.text))}
       className={clsx(
         'sticky top-0 z-40 border-b transition-colors duration-300',
+        section.text && 'text-site-foreground',
         custom
           ? clsx('text-site-foreground', scrolled || open ? 'border-site-border shadow-sm' : 'border-transparent')
           : scrolled || open

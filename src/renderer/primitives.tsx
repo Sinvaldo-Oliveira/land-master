@@ -6,9 +6,9 @@ import { clsx as cn } from 'clsx'
 import { sectionIcons } from './icons'
 import { isExternal, safeHref } from './safe-href'
 import { useSiteTheme } from './context'
-import { surfaceStyle } from './surface'
+import { mergeStyles, surfaceStyle, textVars } from './surface'
 import { colorVars } from './theme'
-import type { IconName, LinkItem, SectionBackground, SectionTone } from './types'
+import type { IconName, LinkItem, SectionBackground, SectionText, SectionTone } from './types'
 
 export function Container({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={cn('mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8', className)}>{children}</div>
@@ -27,6 +27,7 @@ const toneClasses: Record<SectionTone, string> = {
 export function SectionShell({
   tone,
   background,
+  text,
   anchor,
   labelledBy,
   className,
@@ -34,6 +35,8 @@ export function SectionShell({
 }: {
   tone: SectionTone
   background?: SectionBackground | undefined
+  /** Cores de texto escolhidas no painel (sobrepõem as automáticas). */
+  text?: SectionText | undefined
   anchor?: string | undefined
   labelledBy?: string
   className?: string
@@ -41,7 +44,7 @@ export function SectionShell({
 }) {
   const theme = useSiteTheme()
   const custom = surfaceStyle(theme, background)
-  const style: CSSProperties | undefined = custom ?? (tone === 'dark' ? colorVars(theme.darkColors) : undefined)
+  const style: CSSProperties | undefined = mergeStyles(custom ?? (tone === 'dark' ? colorVars(theme.darkColors) : undefined), textVars(text))
   return (
     <section
       id={anchor}

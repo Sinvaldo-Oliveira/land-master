@@ -541,3 +541,37 @@ test('fundo da seção: cor sólida, degradê de 3 cores e volta ao tema', async
   await expect.poll(() => sectionStyle('background')).toBe('')
   await expect(page.getByText('Alterações não salvas')).toBeVisible()
 })
+
+test('cor do texto da seção: personalizada aplica na prévia, avisa contraste e volta ao automático', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: /^Destaque principal/ }).click()
+
+  const heroVar = (name: string) =>
+    page
+      .locator('iframe[title="Pré-visualização do site"]')
+      .evaluate((el, prop) => (el as HTMLIFrameElement).contentDocument!.querySelector<HTMLElement>('#inicio')!.style.getPropertyValue(prop), name)
+
+  const group = page.getByRole('group', { name: 'Cor do texto da seção' })
+  await group.getByText('Personalizada', { exact: true }).click()
+  // Começa pelas cores automáticas atuais
+  await expect(group.getByRole('textbox', { name: 'Títulos e texto principal', exact: true })).toHaveValue('#0b1324')
+
+  await group.getByRole('textbox', { name: 'Títulos e texto principal', exact: true }).fill('#7f1d1d')
+  await group
+    .getByRole('textbox', { name: 'Destaque 1 (botões, ícones, selos e início do trecho em destaque)', exact: true })
+    .fill('#166534')
+  await expect.poll(() => heroVar('--site-foreground')).toBe('#7f1d1d')
+  expect(await heroVar('--site-primary')).toBe('#166534')
+  await expect(group.getByRole('status')).toHaveCount(0)
+
+  // Texto quase branco sobre fundo branco: aviso de contraste
+  await group.getByRole('textbox', { name: 'Texto secundário (subtítulos e descrições)', exact: true }).fill('#f1f5f9')
+  await expect(group.getByRole('status')).toContainText('Texto secundário: pouco contraste com o fundo')
+
+  await group.getByText('Automática', { exact: true }).click()
+  await expect.poll(() => heroVar('--site-foreground')).toBe('')
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})

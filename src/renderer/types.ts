@@ -67,6 +67,17 @@ export type SectionBackground = {
   direction?: BackgroundDirection
 }
 
+/**
+ * Cores de texto escolhidas para a seção. Ausente = automáticas (calculadas a partir do fundo).
+ * primary: botões, ícones, selos e início do trecho em destaque; accent: fim do destaque e detalhes.
+ */
+export type SectionText = {
+  foreground: string
+  muted: string
+  primary: string
+  accent: string
+}
+
 /** hidden: a seção continua no documento, mas não é desenhada no site. */
 type SectionBase = {
   id: string
@@ -75,6 +86,7 @@ type SectionBase = {
   /** Nome exibido no painel (ex.: "Imagem Hiro 01"). */
   name?: string
   background?: SectionBackground
+  text?: SectionText
 }
 
 export type HeaderSection = SectionBase & {

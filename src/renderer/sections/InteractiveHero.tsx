@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { useSiteTheme } from '../context'
-import { backgroundCss, backgroundStops } from '../surface'
+import { backgroundCss, backgroundStops, validText } from '../surface'
 import type { InteractiveHeroSection } from '../types'
 import {
   approach,
@@ -187,6 +187,12 @@ export default function InteractiveHero({ section }: { section: InteractiveHeroS
   const stops = backgroundStops(section.background)
   const customBackground = stops && section.background ? { background: backgroundCss(section.background, stops) } : undefined
 
+  // Cores de texto escolhidas no painel (título, subtítulo/selo e brilho do título).
+  const text = validText(section.text)
+  const textStyle = text
+    ? ({ '--ih-text': text.foreground, '--ih-muted': text.muted, '--ih-glow-1': text.accent, '--ih-glow-2': text.primary } as CSSProperties)
+    : undefined
+
   const label = section.buttonLabel.split('/').map((part) => part.trim()).filter(Boolean)
 
   return (
@@ -194,7 +200,7 @@ export default function InteractiveHero({ section }: { section: InteractiveHeroS
       ref={stageRef}
       aria-labelledby={titleId}
       className={`ih-stage${waiting ? ' ih-wait' : ''}`}
-      style={customBackground}
+      style={{ ...customBackground, ...textStyle }}
       {...(finePointer ? { 'data-fine-pointer': '' } : {})}
       {...(pointerIn && finePointer ? { 'data-pointer-in': '' } : {})}
       onPointerMove={onPointerMove}

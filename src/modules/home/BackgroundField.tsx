@@ -1,7 +1,7 @@
 import { Plus, TriangleAlert, X } from 'lucide-react'
 import { Button, Field, Select } from '@/admin/ui'
-import { backgroundCss, backgroundStops, isLightSurface, surfaceColors } from '@/renderer/surface'
-import type { BackgroundDirection, SectionBackground, SectionTone, SiteTheme } from '@/renderer/types'
+import { backgroundCss, backgroundStops, isLightSurface, surfaceColors, validText } from '@/renderer/surface'
+import type { BackgroundDirection, SectionBackground, SectionText, SectionTone, SiteTheme } from '@/renderer/types'
 import { ColorField } from './ColorField'
 import { backgroundWarnings, startBackground } from './editor-state'
 
@@ -62,7 +62,8 @@ export function BackgroundField({
     stops && value && theme
       ? { css: backgroundCss(value, stops), text: surfaceColors(isLightSurface(stops) ? theme.colors : theme.darkColors, stops) }
       : null
-  const warnings = theme && value ? backgroundWarnings(theme, { type, background: value }) : []
+  const text = validText(section.text as SectionText | undefined)
+  const warnings = theme && value ? backgroundWarnings(theme, { type, background: value, text: text ?? undefined }) : []
 
   return (
     <fieldset className="grid gap-4 rounded-admin-lg border border-admin-rule p-4" aria-describedby={hint ? `${id}-hint` : undefined}>
@@ -143,11 +144,11 @@ export function BackgroundField({
         <div
           data-testid={`${id}-sample`}
           aria-hidden="true"
-          style={{ background: sample.css, color: type === 'interactive-hero' ? '#ffffff' : sample.text.foreground }}
+          style={{ background: sample.css, color: text?.foreground ?? (type === 'interactive-hero' ? '#ffffff' : sample.text.foreground) }}
           className="flex h-16 items-center justify-between rounded-admin border border-admin-rule px-4"
         >
           <span className="text-base font-semibold">Título de exemplo</span>
-          <span style={{ color: type === 'interactive-hero' ? undefined : sample.text.mutedForeground }} className="text-admin-sm">
+          <span style={{ color: text?.muted ?? (type === 'interactive-hero' ? undefined : sample.text.mutedForeground) }} className="text-admin-sm">
             texto
           </span>
         </div>

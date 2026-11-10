@@ -62,6 +62,7 @@ const base = {
   hidden: z.boolean().optional(),
   name: optionalText('Nome da seção', 60),
   background: sectionBackground.optional(),
+  text: z.object({ foreground: hex, muted: hex, primary: hex, accent: hex }).optional(),
 }
 const brand = z.object({ name: text('Nome da empresa', 60), tagline: optionalText('Slogan', 80) })
 

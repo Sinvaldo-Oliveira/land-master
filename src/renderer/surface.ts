@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { colorVars, contrastRatio } from './theme'
-import type { BackgroundDirection, SectionBackground, SiteTheme, ThemeColors } from './types'
+import type { BackgroundDirection, SectionBackground, SectionText, SiteTheme, ThemeColors } from './types'
 
 /**
  * Fundo personalizado das seções (cor sólida ou degradê de até 3 cores) e a paleta derivada dele:
@@ -112,6 +112,42 @@ export function backgroundCss(background: SectionBackground, stops: string[]): s
   if (stops.length === 1) return stops[0]!
   const head = gradientHeads[background.direction ?? 'to-bottom'] ?? gradientHeads['to-bottom']
   return head + stops.join(', ') + ')'
+}
+
+/** Texto sobre uma cor de botão/destaque: branco ou azul-noite, o que tiver mais contraste. */
+export function onColor(hex: string): string {
+  return contrastRatio('#ffffff', hex) >= contrastRatio('#0b1324', hex) ? '#ffffff' : '#0b1324'
+}
+
+/** Cores de texto válidas (as 4 em #rrggbb) ou null = cores automáticas. */
+export function validText(text: SectionText | undefined): SectionText | null {
+  if (!text || typeof text !== 'object') return null
+  const keys = ['foreground', 'muted', 'primary', 'accent'] as const
+  return keys.every((key) => typeof text[key] === 'string' && HEX.test(text[key])) ? text : null
+}
+
+/**
+ * Variáveis das cores de texto escolhidas para a seção (títulos, texto secundário, destaques).
+ * O texto sobre os botões continua automático para manter a leitura.
+ */
+export function textVars(text: SectionText | undefined): CSSProperties | undefined {
+  const t = validText(text)
+  if (!t) return undefined
+  return {
+    '--site-foreground': t.foreground,
+    '--site-muted-foreground': t.muted,
+    '--site-primary': t.primary,
+    '--site-primary-foreground': onColor(t.primary),
+    '--site-ring': t.primary,
+    '--site-accent': t.accent,
+    '--site-accent-foreground': onColor(t.accent),
+  } as CSSProperties
+}
+
+/** Junta estilos opcionais (fundo/tom + texto); undefined quando nenhum se aplica. */
+export function mergeStyles(...styles: (CSSProperties | undefined)[]): CSSProperties | undefined {
+  const present = styles.filter(Boolean) as CSSProperties[]
+  return present.length ? Object.assign({}, ...present) : undefined
 }
 
 /**

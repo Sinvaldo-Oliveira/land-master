@@ -11,6 +11,8 @@ import {
   addVideoCarouselSection,
   backgroundWarnings,
   startBackground,
+  startText,
+  textWarnings,
   contrastWarnings,
   getBrandName,
   mixHex,
@@ -334,5 +336,59 @@ describe('fundo personalizado da seção', () => {
     expect(validateDocument(withBg({ mode: 'gradient', colors: ['#ffffff'] })).map((i) => i.message)).toContain('Degradê: escolha pelo menos 2 cores.')
     expect(validateDocument(withBg({ mode: 'gradient', colors: ['#ffffff', 'red'] }))).not.toEqual([])
     expect(validateDocument(withBg({ mode: 'gradient', colors: ['#ffffff', '#000000'], direction: 'evil' }))).not.toEqual([])
+  })
+})
+
+describe('cores de texto da seção', () => {
+  const theme = doc.theme
+
+  it('ao escolher "Personalizada" começa pelas cores automáticas atuais', () => {
+    expect(startText(theme, { type: 'features', tone: 'light' })).toEqual({
+      foreground: theme.colors.foreground,
+      muted: theme.colors.mutedForeground,
+      primary: theme.colors.primary,
+      accent: theme.colors.accent,
+    })
+    expect(startText(theme, { type: 'steps', tone: 'dark' }).foreground).toBe(theme.darkColors.foreground)
+    expect(startText(theme, { type: 'cta' }).foreground).toBe('#ffffff')
+    expect(startText(theme, { type: 'interactive-hero' })).toMatchObject({ foreground: '#ffffff', primary: '#3d6bff' })
+    // Com fundo personalizado, parte da paleta calculada para ele
+    const bg = { mode: 'solid' as const, colors: ['#111827'] }
+    expect(startText(theme, { type: 'features', tone: 'light', background: bg }).foreground).toBe('#f1f5ff')
+  })
+
+  it('cores automáticas do modelo não geram aviso', () => {
+    for (const section of doc.sections) {
+      const like = { ...section, text: startText(theme, section) }
+      expect(textWarnings(theme, like), section.type).toEqual([])
+    }
+  })
+
+  it('avisa quando a cor escolhida some no fundo', () => {
+    const warnings = textWarnings(theme, {
+      type: 'features',
+      tone: 'light',
+      text: { foreground: '#eeeeee', muted: '#475569', primary: '#2f5bea', accent: '#0891b2' },
+    })
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toMatch(/^Títulos e texto principal: pouco contraste com o fundo \(1,\d:1; o mínimo recomendado é 4,5:1\)\.$/)
+  })
+
+  it('com cores de texto escolhidas, o aviso automático do fundo dá lugar ao do texto', () => {
+    const background = { mode: 'gradient' as const, colors: ['#ffffff', '#000000'] }
+    expect(backgroundWarnings(theme, { type: 'features', background })).not.toEqual([])
+    expect(
+      backgroundWarnings(theme, { type: 'features', background, text: { foreground: '#ff0000', muted: '#ff0000', primary: '#ff0000', accent: '#ff0000' } }),
+    ).toEqual([])
+  })
+
+  it('validação aceita as 4 cores e recusa valor inválido', () => {
+    const withText = (text: unknown) => ({
+      ...doc,
+      sections: doc.sections.map((s) => (s.type === 'faq' ? ({ ...s, text } as unknown as Section) : s)),
+    })
+    expect(validateDocument(withText({ foreground: '#111111', muted: '#222222', primary: '#333333', accent: '#444444' }))).toEqual([])
+    expect(validateDocument(withText({ foreground: '#111111', muted: '#222222', primary: '#333333' }))).not.toEqual([])
+    expect(validateDocument(withText({ foreground: 'red', muted: '#222222', primary: '#333333', accent: '#444444' }))).not.toEqual([])
   })
 })

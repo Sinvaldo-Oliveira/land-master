@@ -132,7 +132,7 @@
   font-size: calc(18 * var(--u));
   letter-spacing: 0.46em;
   text-transform: uppercase;
-  color: #cdd2e6;
+  color: var(--ih-muted, #cdd2e6);
 }
 .ih-title {
   margin: 0;
@@ -144,17 +144,18 @@
   line-height: 1;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--ih-text, #fff);
+  /* Brilho: cor do título + destaques escolhidos no painel (padrão: azul). */
   text-shadow:
-    0 0 calc(14 * var(--u)) #fff,
-    0 0 calc(34 * var(--u)) #b9cbff,
-    0 0 calc(70 * var(--u)) #3d6bff;
+    0 0 calc(14 * var(--u)) var(--ih-text, #fff),
+    0 0 calc(34 * var(--u)) var(--ih-glow-1, #b9cbff),
+    0 0 calc(70 * var(--u)) var(--ih-glow-2, #3d6bff);
 }
 .ih-subtitle {
   margin: calc(9 * var(--u)) 0 0;
   font-weight: 600;
   font-size: calc(23 * var(--u));
-  color: #cdd2e6;
+  color: var(--ih-muted, #cdd2e6);
 }
 .ih-caption {
   position: absolute;
@@ -162,7 +163,7 @@
   margin: 0;
   font-weight: 700;
   font-size: calc(12.2 * var(--u));
-  color: #fff;
+  color: var(--ih-text, #fff);
 }
 .ih-caption--left {
   left: calc(50% - 720 * var(--u) + 55 * var(--u));

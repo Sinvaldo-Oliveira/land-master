@@ -1,6 +1,6 @@
-import { backgroundStops, isLightSurface, mixHex, surfaceColors, worstContrast } from '@/renderer/surface'
+import { backgroundCss, backgroundStops, isLightSurface, mixHex, surfaceColors, validText, worstContrast } from '@/renderer/surface'
 import { contrastRatio } from '@/renderer/theme'
-import type { PageDocument, Section, SectionBackground, SectionTone, SiteTheme } from '@/renderer/types'
+import type { PageDocument, Section, SectionBackground, SectionText, SectionTone, SiteTheme, ThemeColors } from '@/renderer/types'
 
 /** Cabeçalho e rodapé ficam sempre nas pontas; só as seções do meio são reordenadas. */
 export const FIXED_SECTIONS: Section['type'][] = ['site-header', 'site-footer']
@@ -175,9 +175,13 @@ export function startBackground(
 }
 
 /** Avisos de leitura para o fundo personalizado de uma seção (lista vazia = tudo legível). */
-export function backgroundWarnings(theme: SiteTheme, section: { type: string; background?: SectionBackground }): string[] {
+export function backgroundWarnings(
+  theme: SiteTheme,
+  section: { type: string; background?: SectionBackground | undefined; text?: SectionText | undefined },
+): string[] {
   const stops = backgroundStops(section.background)
-  if (!stops) return []
+  // Com cores de texto escolhidas, quem avisa é o campo "Cor do texto" (textWarnings).
+  if (!stops || validText(section.text)) return []
   if (section.type === 'interactive-hero') {
     return worstContrast('#ffffff', stops) < 4.5
       ? ['O texto desta seção é branco: escolha cores mais escuras para ele continuar legível (vale quando não há imagem de fundo).']
@@ -190,6 +194,71 @@ export function backgroundWarnings(theme: SiteTheme, section: { type: string; ba
   }
   if (section.type !== 'cta' && section.type !== 'site-footer' && worstContrast(colors.primary, stops) < 3) {
     warnings.push('A cor principal fica pouco visível sobre este fundo (selos, destaques e ícones). Ajuste o fundo ou a cor principal.')
+  }
+  return warnings
+}
+
+type SectionLike = { type: string; tone?: unknown; background?: SectionBackground | undefined; text?: SectionText | undefined }
+
+/**
+ * Fundo efetivo de uma seção no site (cores, CSS para a amostra do painel) e a paleta automática dele.
+ * Espelha o renderizador: fundo personalizado > tom (claro/suave/escuro) > padrão do tipo de seção.
+ */
+export function sectionSurface(theme: SiteTheme, section: SectionLike): { stops: string[]; css: string; colors: ThemeColors } {
+  const stops = backgroundStops(section.background)
+  // O hero interativo tem texto próprio (branco e cinza-azulado), qualquer que seja o fundo.
+  const heroText = { foreground: '#ffffff', mutedForeground: '#cdd2e6' }
+  if (stops && section.background) {
+    const colors = surfaceColors(isLightSurface(stops) ? theme.colors : theme.darkColors, stops)
+    const css = backgroundCss(section.background, stops)
+    return { stops, css, colors: section.type === 'interactive-hero' ? { ...colors, ...heroText } : colors }
+  }
+  if (section.type === 'interactive-hero') {
+    return { stops: ['#02040d'], css: '#02040d', colors: { ...theme.darkColors, ...heroText } }
+  }
+  const colors = section.type === 'site-footer' || section.tone === 'dark' ? theme.darkColors : theme.colors
+  const bg = section.tone === 'muted' ? colors.muted : colors.background
+  return { stops: [bg], css: bg, colors }
+}
+
+/** Cores de texto iniciais ao escolher "Personalizada": as automáticas atuais da seção (nada muda de cara). */
+export function startText(theme: SiteTheme, section: SectionLike): SectionText {
+  const { colors } = sectionSurface(theme, section)
+  const ctaDefault = section.type === 'cta'
+  // No hero interativo os destaques são o brilho azul do título.
+  const heroGlow = section.type === 'interactive-hero'
+  return {
+    foreground: ctaDefault ? '#ffffff' : colors.foreground,
+    muted: ctaDefault ? '#e6e9f2' : colors.mutedForeground,
+    primary: heroGlow ? '#3d6bff' : colors.primary,
+    accent: heroGlow ? '#b9cbff' : colors.accent,
+  }
+}
+
+const ratio = (value: number) => value.toFixed(1).replace('.', ',')
+
+/** Avisos de leitura das cores de texto escolhidas, medidas contra o fundo efetivo da seção. */
+export function textWarnings(theme: SiteTheme, section: SectionLike): string[] {
+  const text = validText(section.text)
+  if (!text) return []
+  // Na chamada para ação o texto fica sobre o cartão (degradê da cor de destaque 1 até o azul-noite).
+  const stops =
+    section.type === 'cta'
+      ? [text.primary, mixHex(text.primary, '#0b1324', 0.3), '#0b1324']
+      : sectionSurface(theme, section).stops
+  const warnings: string[] = []
+  const check = (color: string, minimum: number, label: string) => {
+    const worst = worstContrast(color, stops)
+    if (worst < minimum) {
+      warnings.push(`${label}: pouco contraste com o fundo (${ratio(worst)}:1; o mínimo recomendado é ${ratio(minimum)}:1).`)
+    }
+  }
+  check(text.foreground, 4.5, 'Títulos e texto principal')
+  check(text.muted, 4.5, 'Texto secundário')
+  // Na chamada para ação e no brilho do hero interativo os destaques são decorativos.
+  if (section.type !== 'cta' && section.type !== 'interactive-hero') {
+    check(text.primary, 3, 'Destaque 1')
+    check(text.accent, 3, 'Destaque 2')
   }
   return warnings
 }

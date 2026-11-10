@@ -7,7 +7,7 @@ import type { FaqSection } from '../types'
 export function Faq({ section }: { section: FaqSection }) {
   const titleId = `${section.id}-title`
   return (
-    <SectionShell tone={section.tone} background={section.background} anchor={section.anchor} labelledBy={titleId}>
+    <SectionShell tone={section.tone} background={section.background} text={section.text} anchor={section.anchor} labelledBy={titleId}>
       <Container className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <SectionHeading id={titleId} eyebrow={section.eyebrow} title={section.title} subtitle={section.subtitle} align="left" />
 

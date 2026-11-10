@@ -11,7 +11,7 @@ export function About({ section, brandName }: { section: AboutSection; brandName
   const titleId = `${section.id}-title`
 
   return (
-    <SectionShell tone={section.tone} background={section.background} anchor={section.anchor} labelledBy={titleId}>
+    <SectionShell tone={section.tone} background={section.background} text={section.text} anchor={section.anchor} labelledBy={titleId}>
       <Container className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
         {section.imageUrl?.trim() ? (
           <AboutPhoto url={section.imageUrl.trim()} alt={section.imageAlt?.trim() || brandName} fit={section.imageFit ?? 'cover'} />

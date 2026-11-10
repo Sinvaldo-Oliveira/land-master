@@ -2,8 +2,9 @@ import type { ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import { Button, Field, fieldDescribedBy, Input, Select, Switch, Textarea } from '@/admin/ui'
 import { safeHref } from '@/renderer/safe-href'
-import type { SectionBackground, SiteTheme } from '@/renderer/types'
+import type { SectionBackground, SectionText, SiteTheme } from '@/renderer/types'
 import { BackgroundField } from './BackgroundField'
+import { TextColorsField } from './TextColorsField'
 import { iconOptions, type FieldDef } from './section-fields'
 import { ImageField } from './ImageField'
 
@@ -136,6 +137,19 @@ function FieldControl({
           label={field.label}
           hint={field.hint}
           value={value as SectionBackground | undefined}
+          section={section}
+          theme={theme}
+          onChange={onChange}
+        />
+      )
+
+    case 'text-colors':
+      return (
+        <TextColorsField
+          id={id}
+          label={field.label}
+          hint={field.hint}
+          value={value as SectionText | undefined}
           section={section}
           theme={theme}
           onChange={onChange}
