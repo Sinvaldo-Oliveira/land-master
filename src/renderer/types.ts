@@ -62,6 +62,10 @@ export type HeaderSection = SectionBase & {
   brand: Brand
   links: LinkItem[]
   cta?: LinkItem
+  /** Logo da empresa. Vazio = iniciais + nome da empresa (automático). */
+  logoUrl?: string
+  /** Altura do logo em px (24 a 64). */
+  logoHeight?: number
 }
 
 export type HeroSection = SectionBase & {

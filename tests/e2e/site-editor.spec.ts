@@ -386,3 +386,27 @@ test('seção Sobre: imagem enviada substitui o painel escuro', async ({ page })
   await expect(preview(page).locator('[data-glare]')).toHaveCount(1)
   await expect(preview(page).locator('blockquote')).toHaveCount(0)
 })
+
+test('cabeçalho: logo enviado substitui o nome; sem logo, o nome volta automaticamente', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  const media = await fakeMediaBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: /^Cabeçalho/ }).click()
+
+  const homeLink = preview(page).getByRole('link', { name: 'Sua Empresa — início' })
+  await expect(homeLink).toContainText('Sua Empresa')
+  await expect(homeLink.locator('img')).toHaveCount(0)
+
+  await page.getByLabel(/^Logo da empresa/).setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: await sampleImage(page, 'image/png') })
+  await expect(page.getByRole('button', { name: 'Remover imagem' })).toBeVisible()
+  expect(media.registros.at(-1)).toMatchObject({ mime: 'image/webp' })
+  await expect(homeLink.locator('img')).toHaveCount(1)
+  await expect(homeLink).not.toContainText('Sua Empresa')
+
+  // Remover o logo volta para o nome automático
+  await page.getByRole('button', { name: 'Remover imagem' }).click()
+  await expect(homeLink.locator('img')).toHaveCount(0)
+  await expect(homeLink).toContainText('Sua Empresa')
+})

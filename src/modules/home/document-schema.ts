@@ -56,7 +56,15 @@ const colors = z.object({
 })
 
 const section = z.discriminatedUnion('type', [
-  z.object({ ...base, type: z.literal('site-header'), brand, links: z.array(link).max(7, 'Menu: no máximo 7 links.'), cta: link.optional() }),
+  z.object({
+    ...base,
+    type: z.literal('site-header'),
+    brand,
+    links: z.array(link).max(7, 'Menu: no máximo 7 links.'),
+    cta: link.optional(),
+    logoUrl: httpsOrEmpty('Logo').optional(),
+    logoHeight: z.number().int().min(24, 'Altura do logo: mínimo 24 px.').max(64, 'Altura do logo: máximo 64 px.').optional(),
+  }),
   z.object({
     ...base,
     type: z.literal('hero'),

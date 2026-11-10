@@ -168,3 +168,18 @@ describe('imagem da seção Sobre: validação', () => {
     expect(validateDocument(aboutWith({ imageFit: 'esticar' })).some((i) => i.sectionId === 'about')).toBe(true)
   })
 })
+
+describe('logo do cabeçalho: validação', () => {
+  const headerWith = (patch: Record<string, unknown>) => ({
+    ...doc,
+    sections: doc.sections.map((s) => (s.type === 'site-header' ? { ...s, ...patch } : s)),
+  })
+  it('aceita logo https e altura entre 24 e 64 px', () => {
+    expect(validateDocument(headerWith({ logoUrl: 'https://x.supabase.co/logo.webp', logoHeight: 48 }))).toEqual([])
+    expect(validateDocument(headerWith({ logoUrl: '' }))).toEqual([])
+  })
+  it('recusa altura fora do limite e endereço sem https', () => {
+    expect(validateDocument(headerWith({ logoHeight: 100 })).some((i) => i.sectionId === 'header')).toBe(true)
+    expect(validateDocument(headerWith({ logoUrl: 'http://x.com/logo.png' })).some((i) => i.sectionId === 'header')).toBe(true)
+  })
+})

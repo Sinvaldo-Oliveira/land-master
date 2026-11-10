@@ -42,8 +42,20 @@ export function SiteHeader({ section }: { section: HeaderSection }) {
     >
       <Container className="flex h-[4.5rem] items-center justify-between gap-6">
         <a href="#inicio" className="flex items-center gap-2.5 rounded-site" aria-label={`${section.brand.name} — início`}>
-          <BrandMark name={section.brand.name} />
-          <span className="font-site-heading text-lg font-semibold tracking-tight whitespace-nowrap">{section.brand.name}</span>
+          {section.logoUrl?.trim() ? (
+            // Logo enviado: a altura vem do editor; a largura acompanha a proporção da imagem.
+            <img
+              src={section.logoUrl.trim()}
+              alt={section.brand.name}
+              style={{ height: section.logoHeight ?? 40 }}
+              className="block w-auto max-w-[160px] object-contain sm:max-w-[220px]"
+            />
+          ) : (
+            <>
+              <BrandMark name={section.brand.name} />
+              <span className="font-site-heading text-lg font-semibold tracking-tight whitespace-nowrap">{section.brand.name}</span>
+            </>
+          )}
         </a>
 
         <nav aria-label="Principal" className="hidden lg:block">

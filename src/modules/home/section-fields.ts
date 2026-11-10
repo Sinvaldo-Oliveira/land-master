@@ -98,6 +98,13 @@ function linkList(label: string, max: number): FieldDef {
 /** Campos editáveis por tipo de seção (a marca e as cores ficam em "Identidade"). */
 export const sectionFields: Record<Section['type'], FieldDef[]> = {
   'site-header': [
+    {
+      kind: 'image',
+      key: 'logoUrl',
+      label: 'Logo da empresa',
+      hint: 'PNG com fundo transparente, WebP ou JPEG, até 5 MB. Sem logo, o cabeçalho mostra o nome da empresa automaticamente.',
+    },
+    { kind: 'range', key: 'logoHeight', label: 'Altura do logo', min: 24, max: 64, step: 2, unit: ' px' },
     linkList('Links do menu', 7),
     { kind: 'link', key: 'cta', label: 'Botão em destaque', optional: true },
   ],
