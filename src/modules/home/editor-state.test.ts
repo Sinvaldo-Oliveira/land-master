@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { institucionalTemplate } from '@/renderer/templates/institucional'
+import { contrastRatio } from '@/renderer/theme'
 import { validateDocument } from './document-schema'
 import { HIGHLIGHT_ERROR, highlightInTitle, sectionName } from './section-fields'
 import {
@@ -8,7 +9,9 @@ import {
   addVideoCarouselSection,
   contrastWarnings,
   getBrandName,
+  mixHex,
   moveSection,
+  setBackgroundColor,
   readableForeground,
   setBrandColor,
   setBrandName,
@@ -218,5 +221,56 @@ describe('logo do rodapé: validação', () => {
     expect(validateDocument(footerWith({ logoUrl: 'https://x.supabase.co/logo.webp', logoHeight: 40 }))).toEqual([])
     expect(validateDocument(footerWith({ logoHeight: 10 })).some((i) => i.sectionId === 'footer')).toBe(true)
     expect(validateDocument(footerWith({ logoUrl: 'http://x.com/logo.png' })).some((i) => i.sectionId === 'footer')).toBe(true)
+  })
+})
+
+describe('cor de fundo global', () => {
+  const samples = ['#ffffff', '#fdf8f3', '#f1e7d8', '#e8f0ff', '#9d1317', '#313f25', '#0e1a12', '#000000', '#7c7c7c', '#808080', '#6b6b6b', '#5a8f5a', '#2f5bea', '#e11d48', '#facc15', '#0891b2']
+
+  it.each(samples)('com fundo %s, textos e cartões mantêm leitura (AA)', (bg) => {
+    const c = setBackgroundColor(doc, bg).theme.colors
+    expect(c.background).toBe(bg)
+    expect(contrastRatio(c.foreground, c.background)).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(c.mutedForeground, c.background)).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(c.foreground, c.card)).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(c.foreground, c.muted)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('fundo claro usa texto escuro; fundo escuro usa texto claro', () => {
+    expect(setBackgroundColor(doc, '#fdf8f3').theme.colors.foreground).toBe('#0b1324')
+    expect(setBackgroundColor(doc, '#0e1a12').theme.colors.foreground).toBe('#f1f5ff')
+  })
+
+  it('não mexe nas cores das seções escuras nem nas cores da marca', () => {
+    const next = setBackgroundColor(doc, '#0e1a12')
+    expect(next.theme.darkColors).toEqual(doc.theme.darkColors)
+    expect(next.theme.colors.primary).toBe(doc.theme.colors.primary)
+    expect(validateDocument(next)).toEqual([])
+  })
+
+  it('mixHex mistura as cores', () => {
+    expect(mixHex('#000000', '#ffffff', 0.5)).toBe('#808080')
+    expect(mixHex('#123456', '#abcdef', 0)).toBe('#123456')
+  })
+})
+
+describe('cor de fundo global: varredura do espectro', () => {
+  it('nenhuma de 4.096 cores de fundo deixa texto, texto secundário, cartão ou seção suave abaixo de 4,5:1', () => {
+    const steps = [...Array(16)].map((_, i) => (i * 17).toString(16).padStart(2, '0'))
+    const failures: string[] = []
+    for (const r of steps)
+      for (const g of steps)
+        for (const b of steps) {
+          const bg = `#${r}${g}${b}`
+          const c = setBackgroundColor(doc, bg).theme.colors
+          const worst = Math.min(
+            contrastRatio(c.foreground, c.background),
+            contrastRatio(c.mutedForeground, c.background),
+            contrastRatio(c.foreground, c.card),
+            contrastRatio(c.foreground, c.muted),
+          )
+          if (worst < 4.5) failures.push(`${bg}: ${worst.toFixed(2)}`)
+        }
+    expect(failures).toEqual([])
   })
 })

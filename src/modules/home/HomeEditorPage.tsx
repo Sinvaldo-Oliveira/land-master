@@ -43,6 +43,7 @@ import {
   moveSection,
   replaceSection,
   setBrandColor,
+  setBackgroundColor,
   setBrandName,
   setSeo,
   toggleHidden,
@@ -558,7 +559,17 @@ function IdentityPanel({ doc, onChange }: { doc: PageDocument; onChange: (update
         <legend className="mb-1 text-admin-sm font-medium text-admin-ink">Cores da marca</legend>
         <ColorField key={`p-${doc.theme.colors.primary}`} id="color-primary" label="Cor principal (botões e destaques)" value={doc.theme.colors.primary} onChange={setColor('primary')} />
         <ColorField key={`a-${doc.theme.colors.accent}`} id="color-accent" label="Cor de apoio (gradientes e detalhes)" value={doc.theme.colors.accent} onChange={setColor('accent')} />
-        <p className="text-admin-xs text-admin-ink-3">A cor do texto sobre os botões é escolhida automaticamente para manter a leitura.</p>
+        <ColorField
+          key={`b-${doc.theme.colors.background}`}
+          id="color-background"
+          label="Cor de fundo do site (global)"
+          value={doc.theme.colors.background}
+          onChange={(hex) => onChange((d) => setBackgroundColor(d, hex))}
+        />
+        <p className="text-admin-xs text-admin-ink-3">
+          O fundo vale para todas as seções claras e suaves (as seções escuras e o rodapé mantêm o fundo escuro). A cor dos
+          textos, cartões e bordas, e a do texto sobre os botões, é ajustada automaticamente para manter a leitura.
+        </p>
         {warnings.map((warning) => (
           <p key={warning} role="status" className="flex gap-2 rounded-admin-md border border-admin-warning/30 bg-admin-warning-soft p-3 text-admin-sm text-admin-ink">
             <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-admin-warning" />

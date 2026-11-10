@@ -148,7 +148,7 @@ test('identidade: nome da empresa e cor da marca mudam a prévia', async ({ page
   await expect(preview(page).getByRole('link', { name: 'Clínica Aurora — início' })).toBeVisible()
 
   await page.getByRole('textbox', { name: 'Cor principal (botões e destaques)', exact: true }).fill('#ffd43b')
-  await expect(page.getByText(/pouco visível sobre o fundo branco/)).toBeVisible()
+  await expect(page.getByText(/pouco visível sobre o fundo do site/)).toBeVisible()
 })
 
 test('sair com alterações não salvas pede confirmação', async ({ page }) => {
@@ -478,4 +478,22 @@ test('rodapé: logo enviado substitui o nome; sem logo, o nome volta automaticam
   await page.getByRole('button', { name: 'Remover imagem' }).click()
   await expect(footer.locator('img')).toHaveCount(0)
   await expect(footer).toContainText('Sua Empresa')
+})
+
+test('identidade: cor de fundo global muda o fundo da prévia e ajusta o texto', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: /Identidade e SEO/ }).click()
+
+  const siteVar = (name: string) =>
+    page
+      .locator('iframe[title="Pré-visualização do site"]')
+      .evaluate((el, prop) => (el as HTMLIFrameElement).contentDocument!.querySelector<HTMLElement>('.site-root')!.style.getPropertyValue(prop), name)
+
+  await page.getByRole('textbox', { name: 'Cor de fundo do site (global)', exact: true }).fill('#0e1a12')
+  await expect.poll(() => siteVar('--site-background')).toBe('#0e1a12')
+  expect(await siteVar('--site-foreground')).toBe('#f1f5ff') // texto claro sobre fundo escuro
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
 })
