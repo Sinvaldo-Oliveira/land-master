@@ -99,6 +99,9 @@ const section = z.discriminatedUnion('type', [
     bullets: z.array(text('Item da lista', 90)).max(8, 'No máximo 8 itens.'),
     cta: link.optional(),
     quote: optionalText('Frase em destaque', 240),
+    imageUrl: httpsOrEmpty('Imagem do Sobre').optional(),
+    imageAlt: optionalText('Descrição da imagem', 160),
+    imageFit: z.enum(['cover', 'contain']).optional(),
   }),
   z.object({
     ...base,

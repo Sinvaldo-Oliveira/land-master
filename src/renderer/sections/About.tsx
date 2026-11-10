@@ -1,8 +1,9 @@
-import { SiteThemeContext, revealDelay } from '../context'
+import { SiteThemeContext, revealDelay, useSiteTheme } from '../context'
 import { Check, Quote } from 'lucide-react'
 import { useContext } from 'react'
 import { ActionLink, BrandMark, Container, SectionHeading, SectionShell } from '../primitives'
 import { colorVars } from '../theme'
+import { useTilt } from '../tilt'
 import type { AboutSection } from '../types'
 
 export function About({ section, brandName }: { section: AboutSection; brandName: string }) {
@@ -12,7 +13,10 @@ export function About({ section, brandName }: { section: AboutSection; brandName
   return (
     <SectionShell tone={section.tone} anchor={section.anchor} labelledBy={titleId}>
       <Container className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
-        {/* Painel visual em tom escuro (decorativo + citação opcional) */}
+        {section.imageUrl?.trim() ? (
+          <AboutPhoto url={section.imageUrl.trim()} alt={section.imageAlt?.trim() || brandName} fit={section.imageFit ?? 'cover'} />
+        ) : (
+        /* Painel visual em tom escuro (decorativo + citação opcional) */
         <div data-reveal className="relative order-last lg:order-first">
           <div
             style={theme ? colorVars(theme.darkColors) : undefined}
@@ -39,6 +43,7 @@ export function About({ section, brandName }: { section: AboutSection; brandName
             </div>
           </div>
         </div>
+        )}
 
         <div>
           <SectionHeading id={titleId} eyebrow={section.eyebrow} title={section.title} align="left" />
@@ -65,5 +70,52 @@ export function About({ section, brandName }: { section: AboutSection; brandName
         </div>
       </Container>
     </SectionShell>
+  )
+}
+
+/** Inclinação máxima (graus), aumento e intensidade do reflexo do cartão de foto. */
+const PHOTO_TILT = 15
+const PHOTO_HOVER_SCALE = 1.05
+
+/**
+ * Foto da seção Sobre como cartão interativo: inclina em 3D com o mouse, cresce um pouco,
+ * aprofunda a sombra e mostra um reflexo de luz que acompanha o cursor.
+ * Sem movimento para toque e para quem pede menos animação.
+ */
+function AboutPhoto({ url, alt, fit }: { url: string; alt: string; fit: 'cover' | 'contain' }) {
+  const theme = useSiteTheme()
+  const tilt = useTilt(theme.motion !== 'none', { maxTilt: PHOTO_TILT })
+  const scale = tilt.active ? PHOTO_HOVER_SCALE : 1
+
+  return (
+    <div data-reveal className="relative order-last mx-auto w-full max-w-md lg:order-first" style={{ perspective: '1000px' }}>
+      <div
+        {...tilt.handlers}
+        style={{
+          ...tilt.style,
+          transition: `${tilt.style.transition}, box-shadow 200ms ease-out`,
+          transform: `${tilt.style.transform} scale(${scale})`,
+          boxShadow: tilt.active ? '0 25px 50px -12px rgb(0 0 0 / 0.5)' : '0 10px 30px -10px rgb(0 0 0 / 0.2)',
+        }}
+        className="relative aspect-[4/5] overflow-hidden rounded-site-lg bg-site-card"
+      >
+        <img
+          src={url}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className={`size-full ${fit === 'contain' ? 'object-contain' : 'object-cover object-top'}`}
+        />
+        <div
+          aria-hidden="true"
+          data-glare
+          className="pointer-events-none absolute inset-0 transition-opacity duration-200"
+          style={{
+            opacity: tilt.active ? 1 : 0,
+            background: `radial-gradient(circle at ${tilt.glare.x}% ${tilt.glare.y}%, rgb(255 255 255 / 0.4) 0%, rgb(255 255 255 / 0) 80%)`,
+          }}
+        />
+      </div>
+    </div>
   )
 }

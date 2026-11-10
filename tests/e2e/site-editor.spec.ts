@@ -366,3 +366,23 @@ test('clipe do hero interativo recusa arquivo que não é vídeo', async ({ page
   await expect(page.getByText('O conteúdo do arquivo não é um vídeo desse tipo.')).toBeVisible()
   expect(media.uploads).toHaveLength(0)
 })
+
+test('seção Sobre: imagem enviada substitui o painel escuro', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  const media = await fakeMediaBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: /^Sobre/ }).click()
+
+  // Antes: painel escuro com a citação
+  await expect(preview(page).locator('blockquote')).toHaveCount(1)
+
+  await page.getByLabel(/^Imagem do Sobre/).setInputFiles({ name: 'leila.png', mimeType: 'image/png', buffer: await sampleImage(page, 'image/png') })
+  await expect(page.getByRole('button', { name: 'Remover imagem' })).toBeVisible()
+  expect(media.registros.at(-1)).toMatchObject({ mime: 'image/webp' })
+
+  // Depois: cartão com a foto, sem o painel
+  await expect(preview(page).locator('[data-glare]')).toHaveCount(1)
+  await expect(preview(page).locator('blockquote')).toHaveCount(0)
+})

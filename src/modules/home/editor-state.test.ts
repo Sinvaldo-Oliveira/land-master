@@ -156,3 +156,15 @@ describe('nova seção: hero interativo', () => {
     expect(validateDocument(bad).some((issue) => issue.sectionId === id)).toBe(true)
   })
 })
+
+describe('imagem da seção Sobre: validação', () => {
+  const aboutWith = (patch: Record<string, unknown>) => ({
+    ...doc,
+    sections: doc.sections.map((s) => (s.type === 'about' ? { ...s, ...patch } : s)),
+  })
+  it('aceita foto https com ajuste válido e recusa o resto', () => {
+    expect(validateDocument(aboutWith({ imageUrl: 'https://x.supabase.co/a.webp', imageFit: 'contain' }))).toEqual([])
+    expect(validateDocument(aboutWith({ imageUrl: 'http://x.com/a.webp' })).some((i) => i.sectionId === 'about')).toBe(true)
+    expect(validateDocument(aboutWith({ imageFit: 'esticar' })).some((i) => i.sectionId === 'about')).toBe(true)
+  })
+})

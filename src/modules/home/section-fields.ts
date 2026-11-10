@@ -148,6 +148,22 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     { kind: 'strings', key: 'paragraphs', label: 'Parágrafos', itemLabel: 'Parágrafo', itemMax: 600, min: 1, max: 4, multiline: true },
     { kind: 'strings', key: 'bullets', label: 'Lista de vantagens', itemLabel: 'Vantagem', itemMax: 90, max: 8 },
     { kind: 'textarea', key: 'quote', label: 'Frase em destaque (painel)', max: 240, optional: true, rows: 2 },
+    {
+      kind: 'image',
+      key: 'imageUrl',
+      label: 'Imagem do Sobre',
+      hint: 'Opcional. Substitui o painel escuro por um cartão com a foto, que inclina em 3D e reflete a luz ao passar o mouse.',
+    },
+    { kind: 'text', key: 'imageAlt', label: 'Descrição da imagem (acessibilidade)', max: 160, optional: true },
+    {
+      kind: 'select',
+      key: 'imageFit',
+      label: 'Ajuste da imagem no cartão',
+      options: [
+        { value: 'cover', label: 'Preencher o cartão (pode cortar as bordas)' },
+        { value: 'contain', label: 'Mostrar a imagem inteira' },
+      ],
+    },
     { kind: 'link', key: 'cta', label: 'Botão', optional: true },
   ],
   steps: [

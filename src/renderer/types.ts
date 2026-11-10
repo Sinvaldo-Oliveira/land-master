@@ -101,6 +101,11 @@ export type AboutSection = SectionBase & {
   cta?: LinkItem
   /** Texto curto exibido no painel visual (ex.: missão da empresa). */
   quote?: string
+  /** Foto que substitui o painel escuro. Vazio = painel. */
+  imageUrl?: string
+  imageAlt?: string
+  /** cover = preenche o cartão (pode cortar bordas); contain = mostra a foto inteira. */
+  imageFit?: 'cover' | 'contain'
 }
 
 export type StepsSection = SectionBase & {
