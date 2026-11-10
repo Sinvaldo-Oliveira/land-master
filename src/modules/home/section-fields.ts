@@ -294,6 +294,9 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
       label: 'Formato dos cartões',
       options: [
         { value: 'poster', label: 'Pôster (vertical, 2:3)' },
+        { value: 'story', label: 'Vertical 9:16 (Reels, Shorts, Stories)' },
+        { value: 'square', label: 'Quadrado (1:1)' },
+        { value: 'classic', label: 'Clássico (horizontal, 4:3)' },
         { value: 'wide', label: 'Vídeo (horizontal, 16:9)' },
       ],
     },

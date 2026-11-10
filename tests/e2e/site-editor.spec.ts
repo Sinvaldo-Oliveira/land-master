@@ -575,3 +575,29 @@ test('cor do texto da seção: personalizada aplica na prévia, avisa contraste 
   await expect.poll(() => heroVar('--site-foreground')).toBe('')
   await expect(page.getByText('Alterações não salvas')).toBeVisible()
 })
+
+test('carrossel: formatos 9:16, quadrado e 4:3 mudam a proporção dos cartões na prévia', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: 'Nova seção' }).click()
+  await page.getByRole('menuitem', { name: 'Carrossel de vídeos' }).click()
+
+  const ratio = () =>
+    page.locator('iframe[title="Pré-visualização do site"]').evaluate((el) => {
+      const poster = (el as HTMLIFrameElement).contentDocument!.querySelector<HTMLElement>('.vc-card .vc-poster')!
+      // offsetWidth/Height: tamanho do layout, sem a rotação 3D dos cartões laterais.
+      return Math.round((poster.offsetWidth / poster.offsetHeight) * 100) / 100
+    })
+
+  for (const [option, expected] of [
+    [/Vertical 9:16/, 0.56],
+    [/Quadrado \(1:1\)/, 1],
+    [/Clássico \(horizontal, 4:3\)/, 1.33],
+  ] as const) {
+    await page.getByRole('combobox', { name: 'Formato dos cartões' }).click()
+    await page.getByRole('option', { name: option }).click()
+    await expect.poll(ratio).toBeCloseTo(expected, 1)
+  }
+})

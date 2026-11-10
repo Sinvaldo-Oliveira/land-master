@@ -200,7 +200,7 @@ const section = z.discriminatedUnion('type', [
     eyebrow: optionalText('Selo', 60),
     title: text('Título', 80),
     subtitle: optionalText('Subtítulo', 160),
-    format: z.enum(['poster', 'wide']),
+    format: z.enum(['poster', 'story', 'square', 'classic', 'wide']),
     autoplay: z.enum(['on', 'off']),
     intervalSeconds: z.number().int().min(3, 'Tempo entre avanços: mínimo 3 s.').max(15, 'Tempo entre avanços: máximo 15 s.'),
     items: z

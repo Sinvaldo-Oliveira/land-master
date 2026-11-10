@@ -1,3 +1,5 @@
+import type { VideoCardFormat } from '../types'
+
 /**
  * Funções puras do carrossel de vídeos (seção "video-carousel"), separadas para teste.
  */
@@ -40,10 +42,27 @@ export function youtubeEmbedUrl(url: string | undefined): string | null {
   return id ? `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1` : null
 }
 
-/** Largura do cartão conforme o palco e o formato (pôster 2:3 ou largo 16:9). */
-export function cardWidthFor(format: 'poster' | 'wide', stageWidth: number, stageHeight: number): number {
-  if (format === 'poster') return Math.min(270, stageWidth * 0.58, Math.max(100, (stageHeight - 28) / 1.5))
-  return Math.min(480, stageWidth * 0.72, Math.max(160, (stageHeight - 28) * (16 / 9)))
+/**
+ * Proporção (largura ÷ altura) e limites de largura de cada formato de cartão.
+ * fraction = parte máxima da largura do palco (deixa os vizinhos aparecerem dos lados).
+ */
+export const cardFormats: Record<VideoCardFormat, { ratio: number; max: number; min: number; fraction: number }> = {
+  poster: { ratio: 2 / 3, max: 270, min: 100, fraction: 0.58 },
+  story: { ratio: 9 / 16, max: 240, min: 90, fraction: 0.5 },
+  square: { ratio: 1, max: 340, min: 130, fraction: 0.62 },
+  classic: { ratio: 4 / 3, max: 420, min: 150, fraction: 0.68 },
+  wide: { ratio: 16 / 9, max: 480, min: 160, fraction: 0.72 },
+}
+
+/** Formato salvo no documento, ou pôster quando o valor é desconhecido (documento antigo ou inválido). */
+export function cardFormat(format: unknown): VideoCardFormat {
+  return typeof format === 'string' && format in cardFormats ? (format as VideoCardFormat) : 'poster'
+}
+
+/** Largura do cartão: cabe na altura do palco (menos a margem) sem passar dos limites do formato. */
+export function cardWidthFor(format: VideoCardFormat, stageWidth: number, stageHeight: number): number {
+  const f = cardFormats[cardFormat(format)]
+  return Math.min(f.max, stageWidth * f.fraction, Math.max(f.min, (stageHeight - 28) * f.ratio))
 }
 
 /** Posição 3D de um cartão a `offset` posições do cartão ativo (pode ser fracionário ao arrastar). */

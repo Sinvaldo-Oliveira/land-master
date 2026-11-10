@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 import { useSiteTheme } from '../context'
 import { Container, SectionHeading, SectionShell } from '../primitives'
 import type { VideoCarouselItem, VideoCarouselSection } from '../types'
-import { cardTransform, cardWidthFor, visibleSlots, wrap, youtubeEmbedUrl } from './video-carousel-utils'
+import { cardFormat, cardTransform, cardWidthFor, visibleSlots, wrap, youtubeEmbedUrl } from './video-carousel-utils'
 import './video-carousel.css'
 
 /**
@@ -34,7 +34,8 @@ export default function VideoCarousel({ section }: { section: VideoCarouselSecti
   const length = items.length
   const activeIndex = length ? wrap(index, length) : 0
   const active = items[activeIndex]
-  const cardWidth = cardWidthFor(section.format, stageSize.width, stageSize.height)
+  const format = cardFormat(section.format)
+  const cardWidth = cardWidthFor(format, stageSize.width, stageSize.height)
   const step = cardWidth * 0.78
   const interval = Math.min(15, Math.max(3, section.intervalSeconds || 6)) * 1000
   const running = playing && !reduced && !preview && !dragging && !paused.hover && !paused.focus && !paused.hidden && length > 1
@@ -173,7 +174,7 @@ export default function VideoCarousel({ section }: { section: VideoCarouselSecti
           <div
             ref={stageRef}
             className="vc-stage"
-            data-format={section.format}
+            data-format={format}
             {...(dragging ? { 'data-dragging': '' } : {})}
             onPointerDown={pointerDown}
             onPointerMove={pointerMove}

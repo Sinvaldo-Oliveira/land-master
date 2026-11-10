@@ -65,6 +65,15 @@
   border-radius: 9px;
   background: var(--site-muted);
 }
+.vc-stage[data-format="story"] .vc-poster {
+  aspect-ratio: 9 / 16;
+}
+.vc-stage[data-format="square"] .vc-poster {
+  aspect-ratio: 1 / 1;
+}
+.vc-stage[data-format="classic"] .vc-poster {
+  aspect-ratio: 4 / 3;
+}
 .vc-stage[data-format="wide"] .vc-poster {
   aspect-ratio: 16 / 9;
 }

@@ -4,7 +4,7 @@ import { SiteThemeContext } from '../context'
 import { institucionalTemplate } from '../templates/institucional'
 import type { VideoCarouselSection } from '../types'
 import VideoCarousel from './VideoCarousel'
-import { cardTransform, visibleSlots, wrap, youtubeEmbedUrl, youtubeId } from './video-carousel-utils'
+import { cardFormat, cardFormats, cardTransform, cardWidthFor, visibleSlots, wrap, youtubeEmbedUrl, youtubeId } from './video-carousel-utils'
 
 describe('links do YouTube', () => {
   it('aceita watch, youtu.be, shorts e embed', () => {
@@ -114,5 +114,43 @@ describe('carrossel', () => {
   it('com um único vídeo, a navegação fica desativada', () => {
     renderCarousel({ items: [section.items[0]!] })
     expect(screen.getByRole('button', { name: 'Próximo' })).toBeDisabled()
+  })
+})
+
+describe('formato dos cartões', () => {
+  it.each([
+    ['poster', 2 / 3],
+    ['story', 9 / 16],
+    ['square', 1],
+    ['classic', 4 / 3],
+    ['wide', 16 / 9],
+  ] as const)('%s: o cartão cabe na altura do palco na proporção certa', (format, ratio) => {
+    // Palco largo e baixo: quem limita é a altura (ou o máximo do formato).
+    const width = cardWidthFor(format, 2000, 400)
+    expect(width).toBeLessThanOrEqual(cardFormats[format].max)
+    expect(width / ratio).toBeLessThanOrEqual(400 - 28 + 0.01)
+    expect(cardFormats[format].ratio).toBeCloseTo(ratio)
+  })
+
+  it('no celular nenhum formato passa da largura reservada (vizinhos aparecem dos lados)', () => {
+    for (const format of Object.keys(cardFormats) as (keyof typeof cardFormats)[]) {
+      expect(cardWidthFor(format, 360, 600)).toBeLessThanOrEqual(360 * 0.72)
+    }
+  })
+
+  it('formato desconhecido (documento antigo ou inválido) vira pôster', () => {
+    expect(cardFormat('cinema')).toBe('poster')
+    expect(cardFormat(undefined)).toBe('poster')
+    expect(cardFormat('story')).toBe('story')
+  })
+
+  it.each(['story', 'square', 'classic'] as const)('palco marca o formato %s para o CSS', (format) => {
+    const { container } = renderCarousel({ format })
+    expect(container.querySelector('.vc-stage')).toHaveAttribute('data-format', format)
+  })
+
+  it('valor inválido no palco cai para pôster', () => {
+    const { container } = renderCarousel({ format: 'cinema' as never })
+    expect(container.querySelector('.vc-stage')).toHaveAttribute('data-format', 'poster')
   })
 })

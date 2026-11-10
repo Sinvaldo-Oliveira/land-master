@@ -232,6 +232,8 @@ export type InteractiveHeroSection = SectionBase & {
   buttonSize: number
 }
 
+export type VideoCardFormat = 'poster' | 'story' | 'square' | 'classic' | 'wide'
+
 export type VideoCarouselItem = {
   /** Pôster (upload). Vazio = cartão de cor com o título. */
   image: string
@@ -250,8 +252,8 @@ export type VideoCarouselSection = SectionBase & {
   eyebrow?: string
   title: string
   subtitle?: string
-  /** poster = 2:3 (vertical); wide = 16:9 (miniatura de vídeo). */
-  format: 'poster' | 'wide'
+  /** Proporção dos cartões: poster 2:3, story 9:16 (vertical), square 1:1, classic 4:3, wide 16:9. */
+  format: VideoCardFormat
   autoplay: 'on' | 'off'
   /** Tempo entre avanços automáticos, em segundos (3 a 15). */
   intervalSeconds: number
