@@ -444,7 +444,10 @@ test('cria "Carrossel de Video 01": navega na prévia e abre o vídeo do YouTube
   await expect(page.getByText('Use um link do YouTube (youtube.com/watch?v=… ou youtu.be/…).')).toHaveCount(0)
 
   expect(youtube).toHaveLength(0) // nada carregado antes do clique
-  await frame.getByRole('button', { name: 'Assistir: Título do vídeo 1' }).click()
+  // Ativa pelo teclado (foco + Enter): clique por coordenadas dentro da prévia em escala + 3D é instável no Playwright.
+  const activeCard = frame.getByRole('button', { name: 'Assistir: Título do vídeo 1' })
+  await activeCard.focus()
+  await activeCard.press('Enter')
   const player = frame.locator('dialog[open] iframe')
   await expect(player).toHaveAttribute('src', /^https:\/\/www\.youtube-nocookie\.com\/embed\/hEJnMQG9ev8/)
   await page.evaluate(() => document.fonts.ready)
