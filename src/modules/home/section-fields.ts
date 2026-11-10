@@ -57,6 +57,7 @@ export const sectionLabels: Record<Section['type'], string> = {
   'image-card': 'Imagem',
   'interactive-hero': 'Hero interativo',
   'video-carousel': 'Carrossel de vídeos',
+  'video-player': 'Vídeo de vendas (VSL)',
 }
 
 export const iconOptions: { value: IconName; label: string }[] = [
@@ -334,6 +335,55 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
       ],
       create: () => ({ image: '', title: 'Novo vídeo', subtitle: '', description: '', videoUrl: '' }),
     },
+  ],
+  'video-player': [
+    { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },
+    toneField,
+    backgroundField,
+    textColorsField,
+    eyebrow,
+    { kind: 'text', key: 'title', label: 'Título', max: 120 },
+    { kind: 'textarea', key: 'subtitle', label: 'Subtítulo', max: 240, optional: true, rows: 2 },
+    {
+      kind: 'video',
+      key: 'videoUrl',
+      label: 'Vídeo (upload)',
+      hint: 'MP4 ou WebM, até 5 MB. Para vídeos maiores, deixe vazio e use o link direto abaixo.',
+    },
+    {
+      kind: 'text',
+      key: 'externalUrl',
+      label: 'Ou link direto do vídeo (MP4/WebM)',
+      max: 500,
+      optional: true,
+      hint: 'Endereço https que abre o arquivo do vídeo (não a página do YouTube). Usado quando não há vídeo enviado.',
+      check: (value) =>
+        value.trim() && !/^https:\/\/[^\s"'()\\]+$/.test(value.trim()) ? 'Use um endereço que comece com https:// (sem espaços).' : undefined,
+    },
+    { kind: 'image', key: 'posterUrl', label: 'Capa do vídeo', hint: 'Imagem exibida antes do play. Ideal na mesma proporção do player (ex.: 1920×1080 no 16:9).' },
+    { kind: 'text', key: 'videoLabel', label: 'Descrição do vídeo (acessibilidade)', max: 160, optional: true },
+    {
+      kind: 'text',
+      key: 'captionsUrl',
+      label: 'Legendas (arquivo .vtt)',
+      max: 500,
+      optional: true,
+      hint: 'Recomendado: link https de um arquivo de legendas WebVTT. Ajuda quem assiste sem som e pessoas surdas.',
+      check: (value) =>
+        value.trim() && !/^https:\/\/[^\s"'()\\]+$/.test(value.trim()) ? 'Use um endereço que comece com https:// (sem espaços).' : undefined,
+    },
+    {
+      kind: 'select',
+      key: 'format',
+      label: 'Proporção do player',
+      options: [
+        { value: 'wide', label: 'Horizontal 16:9' },
+        { value: 'classic', label: 'Clássico 4:3' },
+        { value: 'square', label: 'Quadrado 1:1' },
+        { value: 'story', label: 'Vertical 9:16 (Reels, Shorts, Stories)' },
+      ],
+    },
+    { kind: 'link', key: 'cta', label: 'Botão abaixo do vídeo', optional: true },
   ],
   'interactive-hero': [
     { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },

@@ -224,6 +224,25 @@ const section = z.discriminatedUnion('type', [
   }),
   z.object({
     ...base,
+    type: z.literal('video-player'),
+    tone,
+    eyebrow: optionalText('Selo', 60),
+    title: text('Título', 120),
+    subtitle: optionalText('Subtítulo', 240),
+    videoUrl: httpsOrEmpty('Vídeo'),
+    externalUrl: httpsOrEmpty('Link do vídeo')
+      .refine((v) => v === '' || !/["'()\\]/.test(v), 'Link do vídeo: o endereço tem caracteres inválidos.')
+      .optional(),
+    posterUrl: httpsOrEmpty('Capa do vídeo'),
+    videoLabel: optionalText('Descrição do vídeo', 160),
+    captionsUrl: httpsOrEmpty('Legendas')
+      .refine((v) => v === '' || !/["'()\\]/.test(v), 'Legendas: o endereço tem caracteres inválidos.')
+      .optional(),
+    format: z.enum(['wide', 'classic', 'square', 'story']),
+    cta: link.optional(),
+  }),
+  z.object({
+    ...base,
     type: z.literal('interactive-hero'),
     eyebrow: optionalText('Selo', 40),
     title: text('Título', 40),

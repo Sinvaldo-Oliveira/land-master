@@ -260,6 +260,28 @@ export type VideoCarouselSection = SectionBase & {
   items: VideoCarouselItem[]
 }
 
+/** Vídeo de vendas (VSL): player próprio com capa, play grande e controles em vidro fosco. */
+export type VideoPlayerSection = SectionBase & {
+  type: 'video-player'
+  tone: SectionTone
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  /** Vídeo enviado pelo painel (MP4/WebM). Tem prioridade sobre o link externo. */
+  videoUrl: string
+  /** Link direto https de um MP4/WebM hospedado fora (para vídeos maiores que o limite de envio). */
+  externalUrl?: string
+  /** Capa exibida antes do play. */
+  posterUrl: string
+  /** Descrição do vídeo para leitores de tela (padrão: o título). */
+  videoLabel?: string
+  /** Legendas em WebVTT (.vtt), link https. */
+  captionsUrl?: string
+  /** Proporção do player: wide 16:9, classic 4:3, square 1:1, story 9:16. */
+  format: 'wide' | 'classic' | 'square' | 'story'
+  cta?: LinkItem
+}
+
 export type FooterSection = SectionBase & {
   type: 'site-footer'
   brand: Brand
@@ -284,6 +306,7 @@ export type Section =
   | ImageCardSection
   | InteractiveHeroSection
   | VideoCarouselSection
+  | VideoPlayerSection
   | FooterSection
 
 export type PageDocument = {

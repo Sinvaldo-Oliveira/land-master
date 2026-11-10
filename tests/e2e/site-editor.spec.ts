@@ -601,3 +601,32 @@ test('carrossel: formatos 9:16, quadrado e 4:3 mudam a proporção dos cartões 
     await expect.poll(ratio).toBeCloseTo(expected, 1)
   }
 })
+
+test('cria "PlayVídeo-VSL-01": link do vídeo, play grande na prévia e proporção vertical', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  // Nenhum vídeo é baixado de fora durante o teste.
+  await page.route('https://cdn.exemplo.test/**', (route) => route.abort())
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await page.getByRole('button', { name: 'Nova seção' }).click()
+  await page.getByRole('menuitem', { name: 'Vídeo de vendas (VSL)' }).click()
+  await expect(page.getByRole('heading', { level: 2, name: 'PlayVídeo-VSL-01' })).toBeVisible()
+
+  const frame = preview(page)
+  await expect(frame.getByRole('heading', { level: 2, name: 'Veja em poucos minutos como podemos ajudar você' })).toBeVisible()
+  await expect(frame.getByText('Vídeo em breve')).toBeVisible()
+
+  const link = page.getByRole('textbox', { name: 'Ou link direto do vídeo (MP4/WebM)' })
+  await link.fill('http://inseguro.com/vsl.mp4')
+  await expect(page.getByText('Use um endereço que comece com https:// (sem espaços).')).toBeVisible()
+  await link.fill('https://cdn.exemplo.test/vsl.mp4')
+  await expect(frame.getByRole('button', { name: 'Assistir: Veja em poucos minutos como podemos ajudar você' })).toBeVisible()
+  await expect(frame.locator('video')).toHaveAttribute('src', 'https://cdn.exemplo.test/vsl.mp4')
+
+  await page.getByRole('combobox', { name: 'Proporção do player' }).click()
+  await page.getByRole('option', { name: /Vertical 9:16/ }).click()
+  await expect(frame.locator('.vp-frame')).toHaveAttribute('data-format', 'story')
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})

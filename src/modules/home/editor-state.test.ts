@@ -9,6 +9,7 @@ import {
   addImageSection,
   addInteractiveHeroSection,
   addVideoCarouselSection,
+  addVideoPlayerSection,
   backgroundWarnings,
   startBackground,
   startText,
@@ -390,5 +391,24 @@ describe('cores de texto da seção', () => {
     expect(validateDocument(withText({ foreground: '#111111', muted: '#222222', primary: '#333333', accent: '#444444' }))).toEqual([])
     expect(validateDocument(withText({ foreground: '#111111', muted: '#222222', primary: '#333333' }))).not.toEqual([])
     expect(validateDocument(withText({ foreground: 'red', muted: '#222222', primary: '#333333', accent: '#444444' }))).not.toEqual([])
+  })
+})
+
+describe('nova seção de vídeo de vendas', () => {
+  it('cria "PlayVídeo-VSL-01" antes do rodapé, com conteúdo padrão válido', () => {
+    const { doc: next, id } = addVideoPlayerSection(doc)
+    const index = next.sections.findIndex((x) => x.id === id)
+    expect(next.sections[index + 1]?.type).toBe('site-footer')
+    expect(sectionName(next.sections[index]!)).toBe('PlayVídeo-VSL-01')
+    expect(validateDocument(next)).toEqual([])
+  })
+
+  it('recusa link de vídeo que não seja https', () => {
+    const { doc: next, id } = addVideoPlayerSection(doc)
+    const bad = {
+      ...next,
+      sections: next.sections.map((s) => (s.id === id ? ({ ...s, externalUrl: 'http://inseguro.com/v.mp4' } as Section) : s)),
+    }
+    expect(validateDocument(bad).map((i) => i.sectionId)).toContain(id)
   })
 })

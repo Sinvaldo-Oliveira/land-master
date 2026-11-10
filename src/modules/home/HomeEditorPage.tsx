@@ -38,6 +38,7 @@ import {
   addImageSection,
   addInteractiveHeroSection,
   addVideoCarouselSection,
+  addVideoPlayerSection,
   isMovable,
   MAX_SECTIONS,
   moveSection,
@@ -264,7 +265,9 @@ function Editor({ initial }: { initial: HomePage }) {
                       ? addInteractiveHeroSection(doc)
                       : kind === 'video-carousel'
                         ? addVideoCarouselSection(doc)
-                        : addImageSection(doc)
+                        : kind === 'video-player'
+                          ? addVideoPlayerSection(doc)
+                          : addImageSection(doc)
                   setDoc(() => next)
                   setSelection({ kind: 'section', id })
                   setFocus(id)
@@ -393,7 +396,7 @@ function SectionList({
   onSelect: (section: Section) => void
   onToggle: (id: string) => void
   onMove: (id: string, direction: -1 | 1) => void
-  onAdd: (kind: 'image-card' | 'interactive-hero' | 'video-carousel') => void
+  onAdd: (kind: 'image-card' | 'interactive-hero' | 'video-carousel' | 'video-player') => void
 }) {
   return (
     // minmax(0,1fr): sem isso a coluna do grid cresce até o tamanho dos textos com reticências.
@@ -427,6 +430,7 @@ function SectionList({
               <DropdownMenuItem onSelect={() => onAdd('image-card')}>Cartão de imagem 3D</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onAdd('interactive-hero')}>Hero interativo (mouse e botão)</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onAdd('video-carousel')}>Carrossel de vídeos</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onAdd('video-player')}>Vídeo de vendas (VSL)</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

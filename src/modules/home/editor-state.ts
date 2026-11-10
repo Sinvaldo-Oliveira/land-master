@@ -110,6 +110,26 @@ export function addVideoCarouselSection(doc: PageDocument, name = 'Carrossel de 
   })
 }
 
+/** Cria o vídeo de vendas ("PlayVídeo-VSL-01") antes do rodapé; vídeo e capa a enviar. */
+export function addVideoPlayerSection(doc: PageDocument, name = 'PlayVídeo-VSL-01'): { doc: PageDocument; id: string } {
+  return insertBeforeFooter(doc, {
+    id: `vsl-${Date.now().toString(36)}`,
+    type: 'video-player',
+    name,
+    tone: 'dark',
+    eyebrow: 'Assista antes de decidir',
+    title: 'Veja em poucos minutos como podemos ajudar você',
+    subtitle: '',
+    videoUrl: '',
+    externalUrl: '',
+    posterUrl: '',
+    videoLabel: '',
+    captionsUrl: '',
+    format: 'wide',
+    cta: { label: 'Quero saber mais', href: '#contato' },
+  })
+}
+
 /**
  * Cria o hero interativo ("Imagem Hiro 02") antes do rodapé.
  * Posições padrão do quadro de 1440×810; mídias vazias até o usuário enviar.
