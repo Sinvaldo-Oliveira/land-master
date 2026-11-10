@@ -6,7 +6,6 @@ import { Cta } from './sections/Cta'
 import { Faq } from './sections/Faq'
 import { Features } from './sections/Features'
 import { Hero } from './sections/Hero'
-import { ImageCard } from './sections/ImageCard'
 import { SiteFooter } from './sections/SiteFooter'
 import { SiteHeader } from './sections/SiteHeader'
 import { Steps } from './sections/Steps'
@@ -18,6 +17,7 @@ import './site.css'
 // Seção pesada (vídeo, cursor, fontes próprias): só baixa quando a página tiver esta seção.
 const InteractiveHero = lazy(() => import('./sections/InteractiveHero'))
 const VideoCarousel = lazy(() => import('./sections/VideoCarousel'))
+const ImageCard = lazy(() => import('./sections/ImageCard').then((module) => ({ default: module.ImageCard })))
 
 /**
  * Desenha um PageDocument. Este módulo é do site público:
@@ -75,7 +75,11 @@ function SectionView({ section, brandName }: { section: Section; brandName: stri
     case 'contact':
       return <Contact section={section} />
     case 'image-card':
-      return <ImageCard section={section} />
+      return (
+        <Suspense fallback={<div aria-hidden="true" className="min-h-[34rem] bg-site-background" />}>
+          <ImageCard section={section} />
+        </Suspense>
+      )
     case 'video-carousel':
       return (
         <Suspense fallback={<div aria-hidden="true" className="min-h-[640px] bg-site-background" />}>
