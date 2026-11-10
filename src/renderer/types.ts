@@ -229,6 +229,10 @@ export type VideoCarouselSection = SectionBase & {
 export type FooterSection = SectionBase & {
   type: 'site-footer'
   brand: Brand
+  /** Logo do rodapé (fundo escuro: use uma versão clara). Vazio = iniciais + nome. */
+  logoUrl?: string
+  /** Altura do logo em px (24 a 64). */
+  logoHeight?: number
   description: string
   columns: { title: string; links: LinkItem[] }[]
   legal: string

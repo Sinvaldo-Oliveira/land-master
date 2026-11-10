@@ -456,3 +456,26 @@ test('cria "Carrossel de Video 01": navega na prévia e abre o vídeo do YouTube
   await expect(frame.locator('dialog[open]')).toHaveCount(0)
   await page.locator('iframe[title="Pré-visualização do site"]').screenshot({ path: testInfo.outputPath('carrossel.png') })
 })
+
+test('rodapé: logo enviado substitui o nome; sem logo, o nome volta automaticamente', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  const media = await fakeMediaBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: /^Rodapé/ }).click()
+
+  const footer = preview(page).locator('footer')
+  await expect(footer.locator('img')).toHaveCount(0)
+  await expect(footer).toContainText('Sua Empresa')
+
+  await page.getByLabel(/^Logo da empresa \(rodapé\)/).setInputFiles({ name: 'logo-claro.png', mimeType: 'image/png', buffer: await sampleImage(page, 'image/png') })
+  await expect(page.getByRole('button', { name: 'Remover imagem' })).toBeVisible()
+  expect(media.registros.at(-1)).toMatchObject({ mime: 'image/webp' })
+  await expect(footer.locator('img')).toHaveCount(1)
+  await expect(footer.locator('img')).toHaveAttribute('alt', 'Sua Empresa')
+
+  await page.getByRole('button', { name: 'Remover imagem' }).click()
+  await expect(footer.locator('img')).toHaveCount(0)
+  await expect(footer).toContainText('Sua Empresa')
+})

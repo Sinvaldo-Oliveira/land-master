@@ -208,3 +208,15 @@ describe('nova seção: carrossel de vídeos', () => {
     expect(validateDocument(withVideo('https://vimeo.com/123')).some((i) => i.sectionId === id)).toBe(true)
   })
 })
+
+describe('logo do rodapé: validação', () => {
+  const footerWith = (patch: Record<string, unknown>) => ({
+    ...doc,
+    sections: doc.sections.map((s) => (s.type === 'site-footer' ? { ...s, ...patch } : s)),
+  })
+  it('aceita logo https e altura válida; recusa o resto', () => {
+    expect(validateDocument(footerWith({ logoUrl: 'https://x.supabase.co/logo.webp', logoHeight: 40 }))).toEqual([])
+    expect(validateDocument(footerWith({ logoHeight: 10 })).some((i) => i.sectionId === 'footer')).toBe(true)
+    expect(validateDocument(footerWith({ logoUrl: 'http://x.com/logo.png' })).some((i) => i.sectionId === 'footer')).toBe(true)
+  })
+})

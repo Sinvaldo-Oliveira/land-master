@@ -15,10 +15,22 @@ export function SiteFooter({ section }: { section: FooterSection }) {
     >
       <Container className="grid gap-12 pb-12 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="max-w-sm">
-          <div className="flex items-center gap-2.5">
-            <BrandMark name={section.brand.name} />
-            <span className="font-site-heading text-lg font-semibold">{section.brand.name}</span>
-          </div>
+          {section.logoUrl?.trim() ? (
+            // Logo enviado: altura vem do editor; largura acompanha a proporção da imagem.
+            <img
+              src={section.logoUrl.trim()}
+              alt={section.brand.name}
+              loading="lazy"
+              decoding="async"
+              style={{ height: section.logoHeight ?? 40 }}
+              className="block w-auto max-w-[220px] object-contain"
+            />
+          ) : (
+            <div className="flex items-center gap-2.5">
+              <BrandMark name={section.brand.name} />
+              <span className="font-site-heading text-lg font-semibold">{section.brand.name}</span>
+            </div>
+          )}
           <p className="mt-4 text-site-muted-foreground">{section.description}</p>
         </div>
         {section.columns.map((column) => (

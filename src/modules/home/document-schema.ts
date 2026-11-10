@@ -235,6 +235,8 @@ const section = z.discriminatedUnion('type', [
     ...base,
     type: z.literal('site-footer'),
     brand,
+    logoUrl: httpsOrEmpty('Logo do rodapé').optional(),
+    logoHeight: z.number().int().min(24, 'Altura do logo: mínimo 24 px.').max(64, 'Altura do logo: máximo 64 px.').optional(),
     description: text('Descrição', 240),
     columns: z
       .array(z.object({ title: text('Título da coluna', 40), links: z.array(link).max(8, 'No máximo 8 links por coluna.') }))

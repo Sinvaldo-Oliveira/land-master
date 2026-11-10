@@ -325,6 +325,13 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     { kind: 'range', key: 'buttonSize', label: 'Botão: tamanho', min: 30, max: 200, step: 1, unit: ' px' },
   ],
   'site-footer': [
+    {
+      kind: 'image',
+      key: 'logoUrl',
+      label: 'Logo da empresa (rodapé)',
+      hint: 'O rodapé tem fundo escuro: prefira uma versão clara do logo, em PNG com fundo transparente. Sem logo, o rodapé mostra o nome da empresa automaticamente.',
+    },
+    { kind: 'range', key: 'logoHeight', label: 'Altura do logo', min: 24, max: 64, step: 2, unit: ' px' },
     { kind: 'textarea', key: 'description', label: 'Descrição', max: 240, rows: 2 },
     {
       kind: 'list', key: 'columns', label: 'Colunas de links', itemLabel: 'Coluna', max: 3,
