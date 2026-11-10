@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import { Button, Field, fieldDescribedBy, Input, Select, Switch, Textarea } from '@/admin/ui'
 import { safeHref } from '@/renderer/safe-href'
+import type { SectionBackground, SiteTheme } from '@/renderer/types'
+import { BackgroundField } from './BackgroundField'
 import { iconOptions, type FieldDef } from './section-fields'
 import { ImageField } from './ImageField'
 
@@ -13,11 +15,14 @@ export function FieldsEditor({
   value,
   onChange,
   idPrefix,
+  theme,
 }: {
   fields: FieldDef[]
   value: Data
   onChange: (next: Data) => void
   idPrefix: string
+  /** Tema do documento (amostra e avisos do fundo personalizado). */
+  theme?: SiteTheme | undefined
 }) {
   const set = (key: string, next: unknown) => {
     const copy = { ...value }
@@ -34,6 +39,7 @@ export function FieldsEditor({
           field={field}
           value={value[field.key]}
           section={value}
+          theme={theme}
           onChange={(next) => set(field.key, next)}
           id={`${idPrefix}-${field.key}`}
         />
@@ -58,12 +64,14 @@ function FieldControl({
   field,
   value,
   section,
+  theme,
   onChange,
   id,
 }: {
   field: FieldDef
   value: unknown
   section: Data
+  theme: SiteTheme | undefined
   onChange: (next: unknown) => void
   id: string
 }) {
@@ -120,6 +128,19 @@ function FieldControl({
         </Field>
       )
     }
+
+    case 'background':
+      return (
+        <BackgroundField
+          id={id}
+          label={field.label}
+          hint={field.hint}
+          value={value as SectionBackground | undefined}
+          section={section}
+          theme={theme}
+          onChange={onChange}
+        />
+      )
 
     case 'video':
       return (

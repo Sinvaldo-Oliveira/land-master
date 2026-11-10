@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { useSiteTheme } from '../context'
+import { backgroundCss, backgroundStops } from '../surface'
 import type { InteractiveHeroSection } from '../types'
 import {
   approach,
@@ -182,6 +183,10 @@ export default function InteractiveHero({ section }: { section: InteractiveHeroS
     setOverlayOn((on) => !on)
   }
 
+  // Fundo personalizado: aparece no lugar do céu padrão quando não há imagem de fundo.
+  const stops = backgroundStops(section.background)
+  const customBackground = stops && section.background ? { background: backgroundCss(section.background, stops) } : undefined
+
   const label = section.buttonLabel.split('/').map((part) => part.trim()).filter(Boolean)
 
   return (
@@ -189,6 +194,7 @@ export default function InteractiveHero({ section }: { section: InteractiveHeroS
       ref={stageRef}
       aria-labelledby={titleId}
       className={`ih-stage${waiting ? ' ih-wait' : ''}`}
+      style={customBackground}
       {...(finePointer ? { 'data-fine-pointer': '' } : {})}
       {...(pointerIn && finePointer ? { 'data-pointer-in': '' } : {})}
       onPointerMove={onPointerMove}
@@ -199,7 +205,7 @@ export default function InteractiveHero({ section }: { section: InteractiveHeroS
           {plateUrl ? (
             <img className="ih-plate" src={plateUrl} alt={section.plateAlt?.trim() || ''} decoding="async" />
           ) : (
-            <div aria-hidden="true" className="ih-plate-fallback" />
+            <div aria-hidden="true" className="ih-plate-fallback" style={customBackground} />
           )}
 
           {useClip ? (

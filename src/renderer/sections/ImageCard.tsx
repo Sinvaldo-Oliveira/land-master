@@ -21,7 +21,7 @@ export function ImageCard({ section }: { section: ImageCardSection }) {
   const corner = section.corner ? safeHref(section.corner.href) : null
 
   return (
-    <SectionShell tone={section.tone} anchor={section.anchor} labelledBy={titleId}>
+    <SectionShell tone={section.tone} background={section.background} anchor={section.anchor} labelledBy={titleId}>
       <Container className="flex justify-center">
         <div data-reveal style={{ ...revealDelay(1), perspective: '1000px' }}>
           <div

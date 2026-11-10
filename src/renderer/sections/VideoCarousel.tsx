@@ -159,7 +159,7 @@ export default function VideoCarousel({ section }: { section: VideoCarouselSecti
   const embed = youtubeEmbedUrl(preview?.videoUrl)
 
   return (
-    <SectionShell tone={section.tone} anchor={section.anchor} labelledBy={titleId}>
+    <SectionShell tone={section.tone} background={section.background} anchor={section.anchor} labelledBy={titleId}>
       <Container>
         <SectionHeading id={titleId} eyebrow={section.eyebrow} title={section.title} subtitle={section.subtitle} />
 

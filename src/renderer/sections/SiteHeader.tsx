@@ -1,11 +1,14 @@
 import { clsx } from 'clsx'
 import { Menu, X } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useContext, useEffect, useId, useRef, useState } from 'react'
+import { SiteThemeContext } from '../context'
 import { ActionLink, BrandMark, Container } from '../primitives'
 import { safeHref } from '../safe-href'
+import { surfaceStyle } from '../surface'
 import type { HeaderSection } from '../types'
 
 export function SiteHeader({ section }: { section: HeaderSection }) {
+  const theme = useContext(SiteThemeContext)
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const menuId = useId()
@@ -30,14 +33,20 @@ export function SiteHeader({ section }: { section: HeaderSection }) {
     return () => win.removeEventListener('keydown', onKey)
   }, [open])
 
+  // Fundo personalizado: o cabeçalho fica sempre pintado (também no topo da página).
+  const custom = theme ? surfaceStyle(theme, section.background) : undefined
+
   return (
     <header
       ref={headerRef}
+      style={custom}
       className={clsx(
         'sticky top-0 z-40 border-b transition-colors duration-300',
-        scrolled || open
-          ? 'border-site-border bg-[color-mix(in_srgb,var(--site-background)_88%,transparent)] backdrop-blur-md'
-          : 'border-transparent bg-transparent',
+        custom
+          ? clsx('text-site-foreground', scrolled || open ? 'border-site-border shadow-sm' : 'border-transparent')
+          : scrolled || open
+            ? 'border-site-border bg-[color-mix(in_srgb,var(--site-background)_88%,transparent)] backdrop-blur-md'
+            : 'border-transparent bg-transparent',
       )}
     >
       <Container className="flex h-[4.5rem] items-center justify-between gap-6">

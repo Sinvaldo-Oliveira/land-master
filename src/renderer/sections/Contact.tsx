@@ -19,7 +19,7 @@ const channelIcons: Record<ContactChannel['kind'], LucideIcon> = {
 export function Contact({ section }: { section: ContactSection }) {
   const titleId = `${section.id}-title`
   return (
-    <SectionShell tone={section.tone} anchor={section.anchor} labelledBy={titleId}>
+    <SectionShell tone={section.tone} background={section.background} anchor={section.anchor} labelledBy={titleId}>
       <Container className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
         <div>
           <SectionHeading id={titleId} eyebrow={section.eyebrow} title={section.title} subtitle={section.subtitle} align="left" />

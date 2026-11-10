@@ -1,13 +1,21 @@
+import { useContext } from 'react'
+import { SiteThemeContext } from '../context'
 import { safeHref, isExternal } from '../safe-href'
 import { ActionLink, Container } from '../primitives'
+import { surfaceStyle } from '../surface'
 import type { CtaSection } from '../types'
 
-/** Faixa de chamada para ação com gradiente da cor primária. */
+/** Faixa de chamada para ação com gradiente da cor primária. O fundo personalizado vale para a faixa em volta do cartão. */
 export function Cta({ section }: { section: CtaSection }) {
+  const theme = useContext(SiteThemeContext)
   const titleId = `${section.id}-title`
   const secondaryHref = section.secondary ? safeHref(section.secondary.href) : null
   return (
-    <section aria-labelledby={titleId} className="bg-site-background py-6 sm:py-10">
+    <section
+      aria-labelledby={titleId}
+      style={theme ? surfaceStyle(theme, section.background) : undefined}
+      className="bg-site-background py-6 sm:py-10"
+    >
       <Container>
         <div
           data-reveal

@@ -5,7 +5,7 @@ import type { FeaturesSection } from '../types'
 export function Features({ section }: { section: FeaturesSection }) {
   const titleId = `${section.id}-title`
   return (
-    <SectionShell tone={section.tone} anchor={section.anchor} labelledBy={titleId}>
+    <SectionShell tone={section.tone} background={section.background} anchor={section.anchor} labelledBy={titleId}>
       <Container>
         <SectionHeading id={titleId} eyebrow={section.eyebrow} title={section.title} subtitle={section.subtitle} />
 

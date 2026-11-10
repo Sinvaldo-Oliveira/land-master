@@ -18,6 +18,8 @@ export type FieldDef =
   | { kind: 'video'; key: string; label: string; hint?: string }
   | { kind: 'range'; key: string; label: string; min: number; max: number; step: number; unit: string }
   | { kind: 'icon'; key: string; label: string }
+  /** Fundo personalizado da seção: tema, cor sólida ou degradê (BackgroundField). */
+  | { kind: 'background'; key: 'background'; label: string; hint?: string }
   | { kind: 'select'; key: string; label: string; options: { value: string; label: string }[] }
   | {
       kind: 'list'
@@ -80,6 +82,12 @@ const toneField: FieldDef = {
     { value: 'dark', label: 'Escuro' },
   ],
 }
+const backgroundField: FieldDef = {
+  kind: 'background',
+  key: 'background',
+  label: 'Cor de fundo da seção',
+  hint: 'Tema usa o fundo escolhido acima. Cor sólida e degradê substituem esse fundo só nesta seção; a cor do texto, dos cartões e das bordas é ajustada automaticamente.',
+}
 const eyebrow: FieldDef = { kind: 'text', key: 'eyebrow', label: 'Selo acima do título', max: 60, optional: true }
 const subtitle: FieldDef = { kind: 'textarea', key: 'subtitle', label: 'Subtítulo', max: 240, optional: true, rows: 2 }
 function linkList(label: string, max: number): FieldDef {
@@ -100,6 +108,7 @@ function linkList(label: string, max: number): FieldDef {
 /** Campos editáveis por tipo de seção (a marca e as cores ficam em "Identidade"). */
 export const sectionFields: Record<Section['type'], FieldDef[]> = {
   'site-header': [
+    { ...backgroundField, hint: 'Tema = cabeçalho transparente no topo, que ganha fundo ao rolar. Com cor sólida ou degradê, o cabeçalho fica sempre pintado.' } as FieldDef,
     {
       kind: 'image',
       key: 'logoUrl',
@@ -112,6 +121,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   ],
   hero: [
     toneField,
+    backgroundField,
     eyebrow,
     { kind: 'text', key: 'title', label: 'Título', max: 120 },
     {
@@ -137,6 +147,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   ],
   features: [
     toneField,
+    backgroundField,
     eyebrow,
     { kind: 'text', key: 'title', label: 'Título', max: 100 },
     subtitle,
@@ -152,6 +163,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   ],
   about: [
     toneField,
+    backgroundField,
     eyebrow,
     { kind: 'text', key: 'title', label: 'Título', max: 120 },
     { kind: 'strings', key: 'paragraphs', label: 'Parágrafos', itemLabel: 'Parágrafo', itemMax: 600, min: 1, max: 4, multiline: true },
@@ -177,6 +189,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   ],
   steps: [
     toneField,
+    backgroundField,
     eyebrow,
     { kind: 'text', key: 'title', label: 'Título', max: 100 },
     subtitle,
@@ -192,6 +205,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   ],
   faq: [
     toneField,
+    backgroundField,
     eyebrow,
     { kind: 'text', key: 'title', label: 'Título', max: 100 },
     subtitle,
@@ -205,6 +219,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     },
   ],
   cta: [
+    { ...backgroundField, hint: 'Vale para a faixa em volta do cartão (o cartão mantém o degradê da cor principal).' } as FieldDef,
     { kind: 'text', key: 'title', label: 'Título', max: 100 },
     subtitle,
     { kind: 'link', key: 'primary', label: 'Botão principal' },
@@ -212,6 +227,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   ],
   contact: [
     toneField,
+    backgroundField,
     eyebrow,
     { kind: 'text', key: 'title', label: 'Título', max: 100 },
     subtitle,
@@ -239,6 +255,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   'image-card': [
     { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },
     toneField,
+    backgroundField,
     { kind: 'text', key: 'title', label: 'Título', max: 60 },
     { kind: 'text', key: 'subtitle', label: 'Subtítulo (ex.: local)', max: 120, optional: true },
     { kind: 'image', key: 'imageUrl', label: 'Upload da imagem' },
@@ -249,6 +266,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   'video-carousel': [
     { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },
     toneField,
+    backgroundField,
     eyebrow,
     { kind: 'text', key: 'title', label: 'Título', max: 80 },
     { kind: 'text', key: 'subtitle', label: 'Subtítulo', max: 160, optional: true },
@@ -298,6 +316,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
   ],
   'interactive-hero': [
     { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },
+    { ...backgroundField, hint: 'Aparece no lugar do céu padrão quando não há imagem de fundo. O texto desta seção é branco: prefira cores escuras.' } as FieldDef,
     { kind: 'text', key: 'eyebrow', label: 'Selo acima do título', max: 40, optional: true },
     { kind: 'text', key: 'title', label: 'Título (grande, com brilho)', max: 40 },
     { kind: 'text', key: 'subtitle', label: 'Subtítulo', max: 120, optional: true },
@@ -325,6 +344,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     { kind: 'range', key: 'buttonSize', label: 'Botão: tamanho', min: 30, max: 200, step: 1, unit: ' px' },
   ],
   'site-footer': [
+    { ...backgroundField, hint: 'Tema = fundo escuro do tema. Com cor sólida ou degradê, a cor do texto e das bordas é ajustada automaticamente.' } as FieldDef,
     {
       kind: 'image',
       key: 'logoUrl',

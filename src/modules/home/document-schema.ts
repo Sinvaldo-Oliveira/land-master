@@ -48,7 +48,21 @@ const anchor = z
   .regex(/^[a-z][a-z0-9-]{1,40}$/, 'Âncora: use letras minúsculas, números e hífen.')
   .optional()
 
-const base = { id: z.string().min(1), anchor, hidden: z.boolean().optional(), name: optionalText('Nome da seção', 60) }
+const sectionBackground = z
+  .object({
+    mode: z.enum(['solid', 'gradient']),
+    colors: z.array(hex).min(1, 'Fundo da seção: escolha uma cor.').max(3, 'Degradê: no máximo 3 cores.'),
+    direction: z.enum(['to-bottom', 'to-right', 'to-bottom-right', 'to-top-right', 'radial']).optional(),
+  })
+  .refine((b) => b.mode === 'solid' || b.colors.length >= 2, 'Degradê: escolha pelo menos 2 cores.')
+
+const base = {
+  id: z.string().min(1),
+  anchor,
+  hidden: z.boolean().optional(),
+  name: optionalText('Nome da seção', 60),
+  background: sectionBackground.optional(),
+}
 const brand = z.object({ name: text('Nome da empresa', 60), tagline: optionalText('Slogan', 80) })
 
 const colors = z.object({

@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { institucionalTemplate } from '@/renderer/templates/institucional'
+import { isLightSurface, surfaceColors, worstContrast } from '@/renderer/surface'
 import { contrastRatio } from '@/renderer/theme'
+import type { Section } from '@/renderer/types'
 import { validateDocument } from './document-schema'
 import { HIGHLIGHT_ERROR, highlightInTitle, sectionName } from './section-fields'
 import {
   addImageSection,
   addInteractiveHeroSection,
   addVideoCarouselSection,
+  backgroundWarnings,
+  startBackground,
   contrastWarnings,
   getBrandName,
   mixHex,
@@ -272,5 +276,63 @@ describe('cor de fundo global: varredura do espectro', () => {
           if (worst < 4.5) failures.push(`${bg}: ${worst.toFixed(2)}`)
         }
     expect(failures).toEqual([])
+  })
+})
+
+describe('fundo personalizado da seção', () => {
+  const theme = doc.theme
+  const hex = (n: number) => n.toString(16).padStart(2, '0')
+
+  it('pares de cores: o texto fica legível em toda a seção OU o painel avisa', () => {
+    const steps = [0, 0x33, 0x66, 0x99, 0xcc, 0xff]
+    const silent: string[] = []
+    for (const r of steps) for (const g of steps) for (const b of steps) {
+      for (const shift of [0x33, 0x66]) {
+        const stops = ['#' + hex(r) + hex(g) + hex(b), '#' + hex((r + shift) % 256) + hex(g) + hex((b + shift) % 256)]
+        const colors = surfaceColors(isLightSurface(stops) ? theme.colors : theme.darkColors, stops)
+        const readable = worstContrast(colors.foreground, stops) >= 4.5
+        const warned = backgroundWarnings(theme, { type: 'features', background: { mode: 'gradient', colors: stops } }).length > 0
+        if (!readable && !warned) silent.push(stops.join('→'))
+      }
+    }
+    expect(silent).toEqual([])
+  })
+
+  it('degradê do branco ao preto avisa que o texto não fica legível', () => {
+    const warnings = backgroundWarnings(theme, { type: 'features', background: { mode: 'gradient', colors: ['#ffffff', '#000000'] } })
+    expect(warnings.join(' ')).toMatch(/nenhuma cor de texto/)
+  })
+
+  it('degradê suave e claro não gera aviso', () => {
+    expect(backgroundWarnings(theme, { type: 'features', background: { mode: 'gradient', colors: ['#ffffff', '#eef2ff', '#fdf2f8'] } })).toEqual([])
+  })
+
+  it('hero interativo (texto branco) avisa com fundo claro', () => {
+    expect(backgroundWarnings(theme, { type: 'interactive-hero', background: { mode: 'solid', colors: ['#fef3c7'] } })).toHaveLength(1)
+    expect(backgroundWarnings(theme, { type: 'interactive-hero', background: { mode: 'solid', colors: ['#0b1324'] } })).toEqual([])
+  })
+
+  it('ao trocar para cor sólida ou degradê, parte do fundo atual do tom', () => {
+    expect(startBackground(theme, 'light', 'solid')).toEqual({ mode: 'solid', colors: [theme.colors.background] })
+    expect(startBackground(theme, 'dark', 'solid').colors[0]).toBe(theme.darkColors.background)
+    const g = startBackground(theme, 'muted', 'gradient')
+    expect(g.mode).toBe('gradient')
+    expect(g.colors[0]).toBe(theme.colors.muted)
+    expect(g.colors).toHaveLength(2)
+    // De degradê para sólida mantém a primeira cor; de sólida para degradê mantém a cor escolhida.
+    expect(startBackground(theme, 'light', 'solid', { mode: 'gradient', colors: ['#123456', '#abcdef', '#fedcba'] })).toEqual({ mode: 'solid', colors: ['#123456'] })
+    expect(startBackground(theme, 'light', 'gradient', { mode: 'solid', colors: ['#123456'] }).colors[0]).toBe('#123456')
+  })
+
+  it('validação aceita sólida e degradê de 2 a 3 cores e recusa o resto', () => {
+    const withBg = (background: unknown) => ({
+      ...doc,
+      sections: doc.sections.map((s) => (s.type === 'features' ? ({ ...s, background } as unknown as Section) : s)),
+    })
+    expect(validateDocument(withBg({ mode: 'solid', colors: ['#fdf8f3'] }))).toEqual([])
+    expect(validateDocument(withBg({ mode: 'gradient', colors: ['#ffffff', '#fde68a', '#bae6fd'], direction: 'radial' }))).toEqual([])
+    expect(validateDocument(withBg({ mode: 'gradient', colors: ['#ffffff'] })).map((i) => i.message)).toContain('Degradê: escolha pelo menos 2 cores.')
+    expect(validateDocument(withBg({ mode: 'gradient', colors: ['#ffffff', 'red'] }))).not.toEqual([])
+    expect(validateDocument(withBg({ mode: 'gradient', colors: ['#ffffff', '#000000'], direction: 'evil' }))).not.toEqual([])
   })
 })

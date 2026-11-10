@@ -54,8 +54,28 @@ export type Brand = { name: string; tagline?: string }
 
 export type SectionTone = 'light' | 'muted' | 'dark'
 
+export type BackgroundDirection = 'to-bottom' | 'to-right' | 'to-bottom-right' | 'to-top-right' | 'radial'
+
+/**
+ * Fundo personalizado da seção. Ausente = usa o tom do tema (claro, suave ou escuro).
+ * solid: 1 cor; gradient: 2 ou 3 cores (#rrggbb) na direção escolhida.
+ * Texto, cartões e bordas da seção são recalculados para manter a leitura (src/renderer/surface.ts).
+ */
+export type SectionBackground = {
+  mode: 'solid' | 'gradient'
+  colors: string[]
+  direction?: BackgroundDirection
+}
+
 /** hidden: a seção continua no documento, mas não é desenhada no site. */
-type SectionBase = { id: string; anchor?: string; hidden?: boolean; /** Nome exibido no painel (ex.: "Imagem Hiro 01"). */ name?: string }
+type SectionBase = {
+  id: string
+  anchor?: string
+  hidden?: boolean
+  /** Nome exibido no painel (ex.: "Imagem Hiro 01"). */
+  name?: string
+  background?: SectionBackground
+}
 
 export type HeaderSection = SectionBase & {
   type: 'site-header'

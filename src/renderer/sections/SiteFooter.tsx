@@ -2,6 +2,7 @@ import { SiteThemeContext } from '../context'
 import { useContext } from 'react'
 import { BrandMark, Container } from '../primitives'
 import { safeHref } from '../safe-href'
+import { surfaceStyle } from '../surface'
 import { colorVars } from '../theme'
 import type { FooterSection } from '../types'
 
@@ -10,7 +11,8 @@ export function SiteFooter({ section }: { section: FooterSection }) {
   const year = new Date().getFullYear()
   return (
     <footer
-      style={theme ? colorVars(theme.darkColors) : undefined}
+      // Fundo personalizado (cor/degradê) ou, por padrão, as cores escuras do tema.
+      style={theme ? (surfaceStyle(theme, section.background) ?? colorVars(theme.darkColors)) : undefined}
       className="bg-site-background pt-16 text-site-foreground"
     >
       <Container className="grid gap-12 pb-12 md:grid-cols-[1.4fr_1fr_1fr]">

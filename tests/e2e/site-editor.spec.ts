@@ -432,9 +432,14 @@ test('cria "Carrossel de Video 01": navega na prévia e abre o vídeo do YouTube
   await expect(frame.getByRole('heading', { level: 2, name: 'Assista e conheça' })).toBeVisible()
   const carousel = frame.getByRole('region', { name: 'Assista e conheça' })
   await expect(carousel.getByRole('heading', { level: 3 })).toHaveText('Título do vídeo 1')
-  await frame.getByRole('button', { name: 'Próximo' }).click()
+  // Teclado (foco + Enter): a prévia em escala ainda pode estar rolando até a seção nova,
+  // e um clique calculado nesse meio-tempo cai fora do botão.
+  await frame.getByRole('button', { name: 'Próximo' }).focus()
+  await page.keyboard.press('Enter')
   await expect(carousel.getByRole('heading', { level: 3 })).toHaveText('Título do vídeo 2')
-  await frame.getByRole('button', { name: 'Anterior' }).click()
+  await frame.getByRole('button', { name: 'Anterior' }).focus()
+  await page.keyboard.press('Enter')
+  await expect(carousel.getByRole('heading', { level: 3 })).toHaveText('Título do vídeo 1')
 
   // Link inválido é apontado no editor; link do YouTube é aceito
   const link = page.getByLabel(/^Link do YouTube/).first()
@@ -495,5 +500,44 @@ test('identidade: cor de fundo global muda o fundo da prévia e ajusta o texto',
   await page.getByRole('textbox', { name: 'Cor de fundo do site (global)', exact: true }).fill('#0e1a12')
   await expect.poll(() => siteVar('--site-background')).toBe('#0e1a12')
   expect(await siteVar('--site-foreground')).toBe('#f1f5ff') // texto claro sobre fundo escuro
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})
+
+test('fundo da seção: cor sólida, degradê de 3 cores e volta ao tema', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: /^Serviços/ }).click()
+
+  const sectionStyle = (prop: string) =>
+    page
+      .locator('iframe[title="Pré-visualização do site"]')
+      .evaluate(
+        (el, name) => {
+          const section = (el as HTMLIFrameElement).contentDocument!.querySelector<HTMLElement>('#servicos')!
+          return name === 'background' ? section.style.background : section.style.getPropertyValue(name)
+        },
+        prop,
+      )
+
+  const group = page.getByRole('group', { name: 'Cor de fundo da seção' })
+  await group.getByText('Cor sólida', { exact: true }).click()
+  await group.getByRole('textbox', { name: 'Cor', exact: true }).fill('#0f172a')
+  await expect.poll(() => sectionStyle('--site-background')).toBe('#0f172a')
+  expect(await sectionStyle('--site-foreground')).toBe('#f1f5ff') // texto claro automático
+
+  await group.getByText('Degradê', { exact: true }).click()
+  await group.getByRole('textbox', { name: 'Cor 2', exact: true }).fill('#1e1b4b')
+  await group.getByRole('button', { name: 'Adicionar 3ª cor' }).click()
+  await group.getByRole('textbox', { name: 'Cor 3', exact: true }).fill('#312e81')
+  await group.getByRole('combobox', { name: 'Direção do degradê' }).click()
+  await page.getByRole('option', { name: /Diagonal ↘/ }).click()
+  await expect.poll(() => sectionStyle('background')).toContain('linear-gradient(135deg')
+  expect(await sectionStyle('background')).toMatch(/rgb\(49, 46, 129\)|#312e81/)
+  await expect(group.getByRole('status')).toHaveCount(0) // degradê escuro: sem aviso de leitura
+
+  await group.getByText('Tema', { exact: true }).click()
+  await expect.poll(() => sectionStyle('background')).toBe('')
   await expect(page.getByText('Alterações não salvas')).toBeVisible()
 })

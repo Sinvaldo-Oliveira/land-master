@@ -1,5 +1,6 @@
+import { backgroundStops, isLightSurface, mixHex, surfaceColors, worstContrast } from '@/renderer/surface'
 import { contrastRatio } from '@/renderer/theme'
-import type { PageDocument, Section } from '@/renderer/types'
+import type { PageDocument, Section, SectionBackground, SectionTone, SiteTheme } from '@/renderer/types'
 
 /** Cabeçalho e rodapé ficam sempre nas pontas; só as seções do meio são reordenadas. */
 export const FIXED_SECTIONS: Section['type'][] = ['site-header', 'site-footer']
@@ -141,40 +142,7 @@ export function addInteractiveHeroSection(doc: PageDocument, name = 'Imagem Hiro
   })
 }
 
-/** Mistura duas cores #rrggbb: t = 0 devolve a, t = 1 devolve b. */
-export function mixHex(a: string, b: string, t: number): string {
-  const parse = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
-  const [ca, cb] = [parse(a), parse(b)]
-  return (
-    '#' +
-    ca
-      .map((value, i) => Math.round(value + ((cb[i] ?? value) - value) * t))
-      .map((value) => value.toString(16).padStart(2, '0'))
-      .join('')
-  )
-}
-
-/** true quando a cor é clara (texto escuro lê melhor sobre ela). */
-export function isLight(hex: string): boolean {
-  return contrastRatio('#0b1324', hex) >= contrastRatio('#ffffff', hex)
-}
-
-/** Primeira cor da lista com o contraste mínimo sobre o fundo; senão, a de maior contraste. */
-function firstReadable(candidates: string[], background: string, minimum = 4.5): string {
-  const ok = candidates.find((c) => contrastRatio(c, background) >= minimum)
-  return ok ?? [...candidates].sort((x, y) => contrastRatio(y, background) - contrastRatio(x, background))[0]!
-}
-
-/**
- * Tom derivado do fundo (cartão, seção suave): vai na direção preferida, mas inverte
- * (clareia em vez de escurecer, ou o contrário) se isso derrubar a leitura do texto.
- */
-function derivedTone(background: string, foreground: string, toward: string, amount: number): string {
-  const preferred = mixHex(background, toward, amount)
-  if (contrastRatio(foreground, preferred) >= 4.5) return preferred
-  const opposite = toward === '#ffffff' ? '#000000' : toward === '#000000' ? '#ffffff' : isLight(foreground) ? '#000000' : '#ffffff'
-  return mixHex(background, opposite, amount)
-}
+export { isLight, mixHex } from '@/renderer/surface'
 
 /**
  * Cor de fundo global do site (seções claras e suaves, cartões e bordas).
@@ -182,27 +150,48 @@ function derivedTone(background: string, foreground: string, toward: string, amo
  * Seções escuras e o rodapé usam as cores escuras do tema e não mudam.
  */
 export function setBackgroundColor(doc: PageDocument, background: string): PageDocument {
-  // Lado do texto decidido por preto x branco puros: o que tiver mais contraste com este fundo.
-  const light = contrastRatio('#000000', background) >= contrastRatio('#ffffff', background)
-  // Margem acima de 4,5:1 porque o mesmo texto também aparece sobre os tons derivados (seções suaves, cartões).
-  const foreground = firstReadable(light ? ['#0b1324', '#000000'] : ['#f1f5ff', '#ffffff'], background, 5)
-  const colors = {
-    ...doc.theme.colors,
-    background,
-    foreground,
-    mutedForeground: firstReadable(
-      light ? ['#475569', '#334155', '#1e293b', foreground] : ['#a6b3cf', '#c7d2e6', '#e2e8f0', foreground],
-      background,
-    ),
-    muted: derivedTone(background, foreground, foreground, 0.04),
-    card: light ? derivedTone(background, foreground, '#ffffff', 0.6) : derivedTone(background, foreground, '#ffffff', 0.06),
-    border: mixHex(background, foreground, 0.12),
-  }
-  return { ...doc, theme: { ...doc.theme, colors } }
+  return { ...doc, theme: { ...doc.theme, colors: surfaceColors(doc.theme.colors, [background]) } }
 }
 
 export function setSeo(doc: PageDocument, seo: Partial<PageDocument['seo']>): PageDocument {
   return { ...doc, seo: { ...doc.seo, ...seo } }
+}
+
+/**
+ * Fundo personalizado inicial ao trocar o tipo de fundo de uma seção: parte das cores atuais
+ * do tema (o fundo do tom escolhido e a cor principal), para a troca não "pular" de cor.
+ */
+export function startBackground(
+  theme: SiteTheme,
+  tone: SectionTone | undefined,
+  mode: SectionBackground['mode'],
+  current?: SectionBackground,
+): SectionBackground {
+  const base = tone === 'dark' ? theme.darkColors : theme.colors
+  const first = current?.colors[0] ?? (tone === 'muted' ? base.muted : base.background)
+  if (mode === 'solid') return { mode, colors: [first] }
+  const second = current?.colors[1] ?? mixHex(first, base.primary, 0.35)
+  return { mode, colors: [first, second, ...(current?.colors.slice(2, 3) ?? [])], direction: current?.direction ?? 'to-bottom' }
+}
+
+/** Avisos de leitura para o fundo personalizado de uma seção (lista vazia = tudo legível). */
+export function backgroundWarnings(theme: SiteTheme, section: { type: string; background?: SectionBackground }): string[] {
+  const stops = backgroundStops(section.background)
+  if (!stops) return []
+  if (section.type === 'interactive-hero') {
+    return worstContrast('#ffffff', stops) < 4.5
+      ? ['O texto desta seção é branco: escolha cores mais escuras para ele continuar legível (vale quando não há imagem de fundo).']
+      : []
+  }
+  const warnings: string[] = []
+  const colors = surfaceColors(isLightSurface(stops) ? theme.colors : theme.darkColors, stops)
+  if (worstContrast(colors.foreground, stops) < 4.5) {
+    warnings.push('Com estas cores, nenhuma cor de texto fica bem legível em toda a seção. Deixe as cores mais claras, mais escuras ou mais parecidas entre si.')
+  }
+  if (section.type !== 'cta' && section.type !== 'site-footer' && worstContrast(colors.primary, stops) < 3) {
+    warnings.push('A cor principal fica pouco visível sobre este fundo (selos, destaques e ícones). Ajuste o fundo ou a cor principal.')
+  }
+  return warnings
 }
 
 /** Avisos de contraste (WCAG AA 4,5:1) para as cores escolhidas no modo claro. */

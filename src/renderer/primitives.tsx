@@ -6,8 +6,9 @@ import { clsx as cn } from 'clsx'
 import { sectionIcons } from './icons'
 import { isExternal, safeHref } from './safe-href'
 import { useSiteTheme } from './context'
+import { surfaceStyle } from './surface'
 import { colorVars } from './theme'
-import type { IconName, LinkItem, SectionTone } from './types'
+import type { IconName, LinkItem, SectionBackground, SectionTone } from './types'
 
 export function Container({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={cn('mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8', className)}>{children}</div>
@@ -19,29 +20,39 @@ const toneClasses: Record<SectionTone, string> = {
   dark: 'bg-site-background text-site-foreground',
 }
 
-/** Seção com tom claro, suave ou escuro. No tom escuro as variáveis do tema são trocadas só dentro dela. */
+/**
+ * Seção com tom claro, suave ou escuro. No tom escuro as variáveis do tema são trocadas só dentro dela.
+ * Com fundo personalizado (cor ou degradê), as variáveis são recalculadas a partir dele e o tom é ignorado.
+ */
 export function SectionShell({
   tone,
+  background,
   anchor,
   labelledBy,
   className,
   children,
 }: {
   tone: SectionTone
+  background?: SectionBackground | undefined
   anchor?: string | undefined
   labelledBy?: string
   className?: string
   children: ReactNode
 }) {
   const theme = useSiteTheme()
-  const style: CSSProperties | undefined = tone === 'dark' ? colorVars(theme.darkColors) : undefined
+  const custom = surfaceStyle(theme, background)
+  const style: CSSProperties | undefined = custom ?? (tone === 'dark' ? colorVars(theme.darkColors) : undefined)
   return (
     <section
       id={anchor}
       aria-labelledby={labelledBy}
-      data-tone={tone}
+      data-tone={custom ? 'custom' : tone}
       style={style}
-      className={cn('relative isolate overflow-hidden py-20 sm:py-24 lg:py-28', toneClasses[tone], className)}
+      className={cn(
+        'relative isolate overflow-hidden py-20 sm:py-24 lg:py-28',
+        custom ? 'text-site-foreground' : toneClasses[tone],
+        className,
+      )}
     >
       {children}
     </section>
