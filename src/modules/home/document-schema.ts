@@ -63,6 +63,7 @@ const base = {
   name: optionalText('Nome da seção', 60),
   background: sectionBackground.optional(),
   text: z.object({ foreground: hex, muted: hex, primary: hex, accent: hex }).optional(),
+  category: optionalText('Categoria', 40),
 }
 const brand = z.object({ name: text('Nome da empresa', 60), tagline: optionalText('Slogan', 80) })
 
@@ -294,6 +295,7 @@ export const pageDocumentSchema = z.object({
     motion: z.enum(['none', 'subtle']),
   }),
   sections: z.array(section).max(20),
+  categories: z.array(text('Categoria', 40)).max(12, 'No máximo 12 categorias.').optional(),
 }).superRefine((doc, ctx) => {
   // Regras que dependem de dois campos da mesma seção (o trecho precisa existir no título).
   doc.sections.forEach((s, index) => {

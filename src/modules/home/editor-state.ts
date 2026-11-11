@@ -9,6 +9,62 @@ export function isMovable(section: Section): boolean {
   return !FIXED_SECTIONS.includes(section.type)
 }
 
+/** Remove a seção do rascunho. Cabeçalho e rodapé são fixos e nunca saem. O site só muda depois de publicar. */
+export function removeSection(doc: PageDocument, id: string): PageDocument {
+  return { ...doc, sections: doc.sections.filter((s) => s.id !== id || !isMovable(s)) }
+}
+
+/** Copia da seção com a categoria trocada (sem a chave quando a categoria é vazia). */
+function withCategory(section: Section, category: string | undefined): Section {
+  const next = { ...section }
+  if (category) next.category = category
+  else delete next.category
+  return next
+}
+
+export const MAX_CATEGORIES = 12
+
+/** Cria uma categoria do painel. Nome único, sem diferenciar maiúsculas. */
+export function addCategory(doc: PageDocument, name: string): PageDocument {
+  const clean = name.trim()
+  const categories = doc.categories ?? []
+  if (!clean || categories.length >= MAX_CATEGORIES) return doc
+  if (categories.some((c) => c.toLowerCase() === clean.toLowerCase())) return doc
+  return { ...doc, categories: [...categories, clean] }
+}
+
+/** Remove a categoria. As seções dela continuam no site; só ficam sem categoria. */
+export function removeCategory(doc: PageDocument, name: string): PageDocument {
+  return {
+    ...doc,
+    categories: (doc.categories ?? []).filter((c) => c !== name),
+    sections: doc.sections.map((s) => (s.category === name ? withCategory(s, undefined) : s)),
+  }
+}
+
+function lastIndexOfCategory(sections: Section[], category: string): number {
+  for (let i = sections.length - 1; i >= 0; i--) {
+    if (sections[i]!.category === category) return i
+  }
+  return -1
+}
+
+/**
+ * Coloca a seção em uma categoria (ou tira dela). Cada categoria continua em um bloco contínuo:
+ * a seção entra logo depois do último irmão da categoria de destino.
+ */
+export function setSectionCategory(doc: PageDocument, id: string, category: string | undefined): PageDocument {
+  const from = doc.sections.findIndex((s) => s.id === id)
+  const current = doc.sections[from]
+  if (!current || !isMovable(current) || current.category === category) return doc
+  if (category && !(doc.categories ?? []).includes(category)) return doc
+  const rest = doc.sections.filter((_, i) => i !== from)
+  const anchorCategory = category ?? current.category
+  const anchor = anchorCategory ? lastIndexOfCategory(rest, anchorCategory) : -1
+  const at = anchor >= 0 ? anchor + 1 : from
+  return { ...doc, sections: [...rest.slice(0, at), withCategory(current, category), ...rest.slice(at)] }
+}
+
 export function moveSection(doc: PageDocument, id: string, direction: -1 | 1): PageDocument {
   const sections = [...doc.sections]
   const from = sections.findIndex((s) => s.id === id)
@@ -16,8 +72,9 @@ export function moveSection(doc: PageDocument, id: string, direction: -1 | 1): P
   const current = sections[from]
   const neighbor = sections[to]
   if (!current || !neighbor || !isMovable(current) || !isMovable(neighbor)) return doc
+  // A seção que cruza a fronteira de uma categoria passa a fazer parte dela (os blocos seguem contínuos).
   sections[from] = neighbor
-  sections[to] = current
+  sections[to] = withCategory(current, neighbor.category)
   return { ...doc, sections }
 }
 

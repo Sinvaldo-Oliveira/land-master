@@ -2,6 +2,7 @@ import { Maximize, Minimize, Pause, Play, Volume1, Volume2, VolumeX } from 'luci
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { ActionLink, Container, SectionHeading, SectionShell } from '../primitives'
 import type { VideoPlayerSection } from '../types'
+import { youtubeEmbedUrl } from './video-carousel-utils'
 import { formatTime, httpsOnly } from './video-player-utils'
 import './video-player.css'
 
@@ -16,7 +17,9 @@ const formats = new Set(['wide', 'classic', 'square', 'story'])
  */
 export default function VideoPlayer({ section }: { section: VideoPlayerSection }) {
   const titleId = `${section.id}-title`
-  const src = httpsOnly(section.videoUrl) || httpsOnly(section.externalUrl)
+  // Ordem: vídeo enviado > arquivo direto (MP4/WebM) > link do YouTube (player do YouTube ao clicar).
+  const file = httpsOnly(section.videoUrl) || (youtubeEmbedUrl(section.externalUrl) ? '' : httpsOnly(section.externalUrl))
+  const youtube = file ? null : youtubeEmbedUrl(section.externalUrl)
   const poster = httpsOnly(section.posterUrl)
   const format = formats.has(section.format) ? section.format : 'wide'
   const label = section.videoLabel?.trim() || section.title
@@ -122,13 +125,13 @@ export default function VideoPlayer({ section }: { section: VideoPlayerSection }
           onPointerLeave={(event) => event.pointerType === 'mouse' && setHover(false)}
           onPointerDown={(event) => event.pointerType !== 'mouse' && setTouched(true)}
         >
-          {src ? (
+          {file ? (
             <>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption -- o <track> é condicional: só existe quando o painel recebe o .vtt (campo "Legendas"). */}
               <video
                 ref={videoRef}
                 className="vp-video"
-                src={src}
+                src={file}
                 poster={poster || undefined}
                 preload="metadata"
                 playsInline
@@ -226,6 +229,25 @@ export default function VideoPlayer({ section }: { section: VideoPlayerSection }
                 </div>
               ) : null}
             </>
+          ) : youtube ? (
+            // Link do YouTube: a capa abre o player do YouTube (sem cookies) só ao clicar.
+            started ? (
+              <iframe
+                className="vp-video"
+                src={youtube}
+                title={label}
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            ) : (
+              <div className="vp-empty" style={poster ? { backgroundImage: `url("${poster}")` } : undefined}>
+                <button type="button" className="vp-big-play" onClick={() => setStarted(true)} aria-label={`Assistir: ${label}`}>
+                  <span className="vp-big-play-ring" aria-hidden="true" />
+                  <Play aria-hidden="true" className="size-9 translate-x-0.5" fill="currentColor" />
+                </button>
+              </div>
+            )
           ) : (
             // Sem vídeo ainda: capa (ou fundo escuro) com aviso, sem player quebrado.
             <div className="vp-empty" style={poster ? { backgroundImage: `url("${poster}")` } : undefined}>

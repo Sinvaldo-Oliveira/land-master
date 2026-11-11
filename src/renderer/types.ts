@@ -87,6 +87,8 @@ type SectionBase = {
   name?: string
   background?: SectionBackground
   text?: SectionText
+  /** Categoria do painel (agrupa cards no editor). Não aparece no site. */
+  category?: string
 }
 
 export type HeaderSection = SectionBase & {
@@ -314,4 +316,6 @@ export type PageDocument = {
   seo: { title: string; description: string }
   theme: SiteTheme
   sections: Section[]
+  /** Categorias do painel (organização do editor; o site não mostra os nomes). */
+  categories?: string[]
 }

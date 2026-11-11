@@ -353,10 +353,10 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     {
       kind: 'text',
       key: 'externalUrl',
-      label: 'Ou link direto do vídeo (MP4/WebM)',
+      label: 'Ou link direto (MP4/WebM ou YouTube)',
       max: 500,
       optional: true,
-      hint: 'Endereço https que abre o arquivo do vídeo (não a página do YouTube). Usado quando não há vídeo enviado.',
+      hint: 'Use o arquivo do vídeo (https://…/video.mp4) ou o link do YouTube (youtube.com/watch?v=… ou youtu.be/…). O YouTube abre só quando o visitante clica na capa. Usado quando não há vídeo enviado.',
       check: (value) =>
         value.trim() && !/^https:\/\/[^\s"'()\\]+$/.test(value.trim()) ? 'Use um endereço que comece com https:// (sem espaços).' : undefined,
     },

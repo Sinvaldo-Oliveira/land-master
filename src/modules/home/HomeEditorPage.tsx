@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowLeft, ArrowUp, ChevronRight, ExternalLink, Eye, EyeOff, Globe, Monitor, Palette, Plus, Smartphone, Tablet, TriangleAlert } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronRight, ExternalLink, Eye, EyeOff, FolderOpen, FolderPlus, Globe, Monitor, Palette, Plus, Smartphone, Tablet, Trash2, TriangleAlert } from 'lucide-react'
+import { useEffect, useState, type DragEvent, type ReactNode } from 'react'
 import { useBlocker } from 'react-router'
 import { useDocumentTitle } from '@/admin/hooks/useDocumentTitle'
 import {
@@ -13,6 +13,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   DialogFooter,
   EmptyState,
@@ -40,6 +42,11 @@ import {
   addVideoCarouselSection,
   addVideoPlayerSection,
   isMovable,
+  addCategory,
+  MAX_CATEGORIES,
+  removeCategory,
+  removeSection,
+  setSectionCategory,
   MAX_SECTIONS,
   moveSection,
   replaceSection,
@@ -126,6 +133,8 @@ function Editor({ initial }: { initial: HomePage }) {
   const [saved, setSaved] = useState(initial)
   const [doc, setDoc] = useState<PageDocument>(initial.draft_document)
   const [selection, setSelection] = useState<Selection>({ kind: 'list' })
+  // Seção aguardando confirmação de exclusão (o popup pergunta antes de apagar).
+  const [pendingRemoval, setPendingRemoval] = useState<Section | null>(null)
   const [device, setDevice] = useState<PreviewDevice>('desktop')
   const [focus, setFocus] = useState<string | null>(null)
   // A lista de erros é recalculada a cada alteração, depois da primeira tentativa de salvar.
@@ -258,6 +267,10 @@ function Editor({ initial }: { initial: HomePage }) {
                 }}
                 onSelect={selectSection}
                 onToggle={(id) => setDoc((d) => toggleHidden(d, id))}
+                onRemove={(section) => setPendingRemoval(section)}
+                onSetCategory={(id, category) => setDoc((d) => setSectionCategory(d, id, category))}
+                onAddCategory={(name) => setDoc((d) => addCategory(d, name))}
+                onRemoveCategory={(name) => setDoc((d) => removeCategory(d, name))}
                 onMove={(id, dir) => setDoc((d) => moveSection(d, id, dir))}
                 onAdd={(kind) => {
                   const { doc: next, id } =
@@ -345,6 +358,31 @@ function Editor({ initial }: { initial: HomePage }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={pendingRemoval !== null} onOpenChange={(open) => !open && setPendingRemoval(null)}>
+        <DialogContent
+          title="Excluir esta seção?"
+          description={pendingRemoval ? `"${sectionName(pendingRemoval)}" sai do rascunho. O site só muda depois de publicar.` : undefined}
+        >
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setPendingRemoval(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (!pendingRemoval) return
+                const id = pendingRemoval.id
+                setDoc((d) => removeSection(d, id))
+                if (selection.kind === 'section' && selection.id === id) setSelection({ kind: 'list' })
+                setPendingRemoval(null)
+              }}
+            >
+              Excluir seção
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
@@ -383,6 +421,21 @@ function PanelShell({ title, onBack, children }: { title: string; onBack: () => 
   )
 }
 
+type Item = { section: Section; index: number }
+type Block = { category: string | undefined; items: Item[] }
+
+/** Blocos de seções seguidas da mesma categoria. Seções sem categoria (e as fixas) ficam num bloco "sem categoria". */
+function buildBlocks(sections: Section[]): Block[] {
+  const blocks: Block[] = []
+  sections.forEach((section, index) => {
+    const category = isMovable(section) ? section.category : undefined
+    const last = blocks[blocks.length - 1]
+    if (last && last.category === category) last.items.push({ section, index })
+    else blocks.push({ category, items: [{ section, index }] })
+  })
+  return blocks
+}
+
 function SectionList({
   doc,
   onIdentity,
@@ -390,6 +443,10 @@ function SectionList({
   onToggle,
   onMove,
   onAdd,
+  onRemove,
+  onSetCategory,
+  onAddCategory,
+  onRemoveCategory,
 }: {
   doc: PageDocument
   onIdentity: () => void
@@ -397,7 +454,184 @@ function SectionList({
   onToggle: (id: string) => void
   onMove: (id: string, direction: -1 | 1) => void
   onAdd: (kind: 'image-card' | 'interactive-hero' | 'video-carousel' | 'video-player') => void
+  onRemove: (section: Section) => void
+  onSetCategory: (id: string, category: string | undefined) => void
+  onAddCategory: (name: string) => void
+  onRemoveCategory: (name: string) => void
 }) {
+  const [creating, setCreating] = useState(false)
+  // Arrastar e soltar (nativo): dragId é o card em movimento; overKey é a pasta sob o cursor.
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overKey, setOverKey] = useState<string | null>(null)
+  const dropZone = (key: string, onDropHere: (id: string) => void) => ({
+    onDragOver: (event: DragEvent<HTMLElement>) => {
+      if (!dragId) return
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      setOverKey(key)
+    },
+    onDragLeave: (event: DragEvent<HTMLElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOverKey(null)
+    },
+    onDrop: (event: DragEvent<HTMLElement>) => {
+      event.preventDefault()
+      // O id vem do dataTransfer (preenchido ao iniciar o arraste); o estado é só reserva.
+      const id = event.dataTransfer.getData('text/plain') || dragId
+      if (id) onDropHere(id)
+      setDragId(null)
+      setOverKey(null)
+    },
+  })
+  const [draft, setDraft] = useState('')
+  const categories = doc.categories ?? []
+  const trimmed = draft.trim()
+  const duplicate = trimmed !== '' && categories.some((c) => c.toLowerCase() === trimmed.toLowerCase())
+  const full = categories.length >= MAX_CATEGORIES
+  const createError = duplicate ? 'Já existe uma categoria com este nome.' : full ? `Limite de ${MAX_CATEGORIES} categorias.` : undefined
+  const canCreate = trimmed !== '' && !duplicate && !full
+  const closeCreate = () => {
+    setCreating(false)
+    setDraft('')
+  }
+  const blocks = buildBlocks(doc.sections)
+  // Categorias criadas que ainda não têm seções aparecem vazias, para receber cards.
+  const emptyCategories = categories.filter((name) => !doc.sections.some((s) => s.category === name))
+
+  const renderCard = ({ section, index }: Item) => {
+    const movable = isMovable(section)
+    const label = sectionName(section)
+    const prev = doc.sections[index - 1]
+    const next = doc.sections[index + 1]
+    return (
+      <li
+        key={section.id}
+        draggable={movable}
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = 'move'
+          event.dataTransfer.setData('text/plain', section.id)
+          setDragId(section.id)
+        }}
+        onDragEnd={() => {
+          setDragId(null)
+          setOverKey(null)
+        }}
+        className={`flex items-center gap-2 rounded-admin-lg border border-admin-rule bg-admin-card p-2 data-[hidden=true]:bg-admin-sunken/60 ${movable ? 'cursor-grab active:cursor-grabbing' : ''} ${dragId === section.id ? 'opacity-50' : ''}`}
+        data-hidden={section.hidden ? 'true' : 'false'}
+      >
+        <button
+          type="button"
+          onClick={() => onSelect(section)}
+          className="min-w-0 flex-1 rounded-admin px-2 py-1.5 text-left hover:bg-admin-sunken"
+        >
+          <span className="flex items-center gap-2">
+            <span className="font-medium text-admin-ink">{label}</span>
+            {section.hidden ? <Badge tone="neutral">Oculta</Badge> : null}
+          </span>
+          <span className="block break-words text-admin-sm text-admin-ink-2">{sectionSummary(section)}</span>
+        </button>
+        {movable ? (
+          <div className="flex shrink-0 items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label={section.hidden ? `Mostrar ${label}` : `Ocultar ${label}`}
+              onClick={() => onToggle(section.id)}
+            >
+              {section.hidden ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8" aria-label={`Categoria de ${label}`} title="Mover para categoria">
+                  <FolderOpen aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Mover para categoria</DropdownMenuLabel>
+                {categories.length === 0 ? <DropdownMenuItem disabled>Crie uma categoria primeiro</DropdownMenuItem> : null}
+                {categories.map((name) => (
+                  <DropdownMenuItem key={name} onSelect={() => onSetCategory(section.id, name)}>
+                    {name}
+                    {section.category === name ? ' ✓' : ''}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onSetCategory(section.id, undefined)}>Sem categoria</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label={`Subir ${label}`}
+              disabled={!prev || !isMovable(prev)}
+              onClick={() => onMove(section.id, -1)}
+            >
+              <ArrowUp aria-hidden="true" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label={`Descer ${label}`}
+              disabled={!next || !isMovable(next)}
+              onClick={() => onMove(section.id, 1)}
+            >
+              <ArrowDown aria-hidden="true" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-admin-danger hover:text-admin-danger"
+              aria-label={`Excluir ${label}`}
+              onClick={() => onRemove(section)}
+            >
+              <Trash2 aria-hidden="true" />
+            </Button>
+          </div>
+        ) : (
+          <span className="shrink-0 px-2 text-admin-xs text-admin-ink-3">Fixo</span>
+        )}
+      </li>
+    )
+  }
+
+  const renderGroup = (name: string, items: Item[], key: string) => (
+    <section
+      key={key}
+      aria-label={`Categoria ${name}`}
+      {...dropZone(name, (id) => onSetCategory(id, name))}
+      className={`grid grid-cols-[minmax(0,1fr)] gap-2 rounded-admin-lg border p-2 transition-colors ${
+        dragId && overKey === name ? 'border-admin-accent bg-admin-accent-soft ring-2 ring-admin-accent' : 'border-admin-accent/25 bg-admin-accent-soft/30'
+      }`}
+    >
+      <header className="flex items-center justify-between gap-2 px-1">
+        <span className="flex min-w-0 items-center gap-2 text-admin-sm font-semibold text-admin-ink">
+          <FolderOpen aria-hidden="true" className="size-4 shrink-0 text-admin-accent" />
+          <span className="truncate">{name}</span>
+          <Badge tone="neutral">{items.length}</Badge>
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-admin-danger hover:text-admin-danger"
+          aria-label={`Excluir categoria ${name}`}
+          title="Excluir categoria (as seções continuam no site)"
+          onClick={() => onRemoveCategory(name)}
+        >
+          <Trash2 aria-hidden="true" />
+        </Button>
+      </header>
+      {items.length ? (
+        <ol className="grid grid-cols-[minmax(0,1fr)] gap-2">{items.map(renderCard)}</ol>
+      ) : (
+        <p className="px-1 pb-1 text-admin-xs text-admin-ink-3">
+          Nenhuma seção aqui. Use o ícone de pasta em uma seção para movê-la para esta categoria.
+        </p>
+      )}
+    </section>
+  )
+
   return (
     // minmax(0,1fr): sem isso a coluna do grid cresce até o tamanho dos textos com reticências.
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
@@ -417,86 +651,95 @@ function SectionList({
       </button>
 
       <div>
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-admin-xs font-medium tracking-wide text-admin-ink-3 uppercase">Seções da página</h2>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm" disabled={doc.sections.length >= MAX_SECTIONS}>
-                <Plus aria-hidden="true" />
-                Nova seção
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onSelect={() => onAdd('image-card')}>Cartão de imagem 3D</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onAdd('interactive-hero')}>Hero interativo (mouse e botão)</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onAdd('video-carousel')}>Carrossel de vídeos</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onAdd('video-player')}>Vídeo de vendas (VSL)</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setCreating(true)} disabled={full}>
+              <FolderPlus aria-hidden="true" />
+              Nova categoria
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm" disabled={doc.sections.length >= MAX_SECTIONS}>
+                  <Plus aria-hidden="true" />
+                  Nova seção
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onSelect={() => onAdd('image-card')}>Cartão de imagem 3D</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onAdd('interactive-hero')}>Hero interativo (mouse e botão)</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onAdd('video-carousel')}>Carrossel de vídeos</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onAdd('video-player')}>Vídeo de vendas (VSL)</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        <ol className="grid grid-cols-[minmax(0,1fr)] gap-2">
-          {doc.sections.map((section, index) => {
-            const movable = isMovable(section)
-            const label = sectionName(section)
-            const prev = doc.sections[index - 1]
-            const next = doc.sections[index + 1]
-            return (
-              <li
-                key={section.id}
-                className="flex items-center gap-2 rounded-admin-lg border border-admin-rule bg-admin-card p-2 data-[hidden=true]:bg-admin-sunken/60"
-                data-hidden={section.hidden ? 'true' : 'false'}
-              >
-                <button
-                  type="button"
-                  onClick={() => onSelect(section)}
-                  className="min-w-0 flex-1 rounded-admin px-2 py-1.5 text-left hover:bg-admin-sunken"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-medium text-admin-ink">{label}</span>
-                    {section.hidden ? <Badge tone="neutral">Oculta</Badge> : null}
-                  </span>
-                  <span className="block truncate text-admin-sm text-admin-ink-2">{sectionSummary(section)}</span>
-                </button>
-                {movable ? (
-                  <div className="flex shrink-0 items-center">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8"
-                      aria-label={section.hidden ? `Mostrar ${label}` : `Ocultar ${label}`}
-                      onClick={() => onToggle(section.id)}
-                    >
-                      {section.hidden ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8"
-                      aria-label={`Subir ${label}`}
-                      disabled={!prev || !isMovable(prev)}
-                      onClick={() => onMove(section.id, -1)}
-                    >
-                      <ArrowUp aria-hidden="true" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8"
-                      aria-label={`Descer ${label}`}
-                      disabled={!next || !isMovable(next)}
-                      onClick={() => onMove(section.id, 1)}
-                    >
-                      <ArrowDown aria-hidden="true" />
-                    </Button>
-                  </div>
-                ) : (
-                  <span className="shrink-0 px-2 text-admin-xs text-admin-ink-3">Fixo</span>
-                )}
-              </li>
-            )
-          })}
-        </ol>
+
+        <p className="mb-3 text-admin-xs text-admin-ink-3">Arraste um card para uma pasta de categoria. Pelo teclado, use o ícone de pasta.</p>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
+          {/* Pastas vazias ficam no topo: a pasta recém-criada aparece logo abaixo do botão. */}
+          {emptyCategories.map((name) => renderGroup(name, [], `empty-${name}`))}
+          {blocks.map((block) =>
+            block.category === undefined ? (
+              <ol key={`flat-${block.items[0]!.section.id}`} className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                {block.items.map(renderCard)}
+              </ol>
+            ) : (
+              renderGroup(block.category, block.items, `cat-${block.items[0]!.section.id}`)
+            ),
+          )}
+          {dragId ? (
+            <div
+              {...dropZone('__none__', (id) => onSetCategory(id, undefined))}
+              className={`rounded-admin-lg border-2 border-dashed px-4 py-3 text-center text-admin-sm transition-colors ${
+                overKey === '__none__' ? 'border-admin-accent bg-admin-accent-soft text-admin-ink' : 'border-admin-rule-strong text-admin-ink-3'
+              }`}
+            >
+              Solte aqui para tirar da categoria
+            </div>
+          ) : null}
+        </div>
       </div>
+
+      <Dialog
+        open={creating}
+        onOpenChange={(open) => {
+          if (!open) closeCreate()
+        }}
+      >
+        <DialogContent
+          title="Nova categoria"
+          description="Agrupe seções parecidas, como Menu, Vídeos ou Depoimentos. A categoria só organiza o painel: o site não mostra o nome."
+        >
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (!canCreate) return
+              onAddCategory(trimmed)
+              closeCreate()
+            }}
+            className="grid gap-6"
+          >
+            <Field label="Nome da categoria" htmlFor="new-category" error={createError} hint="Até 40 caracteres.">
+              <Input
+                id="new-category"
+                value={draft}
+                maxLength={40}
+                invalid={Boolean(createError)}
+                onChange={(event) => setDraft(event.target.value)}
+              />
+            </Field>
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={closeCreate}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={!canCreate}>
+                Criar categoria
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

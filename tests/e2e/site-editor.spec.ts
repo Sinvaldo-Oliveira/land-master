@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { signInAs } from './fake-supabase'
 
 /*
@@ -54,6 +54,20 @@ function fakeSiteBackend(page: Page) {
 }
 
 const preview = (page: Page) => page.frameLocator('iframe[title="Pré-visualização do site"]')
+
+/** Espera o card parar de rolar: o arraste só começa quando a posição está estável na tela. */
+async function settle(locator: Locator) {
+  await locator.scrollIntoViewIfNeeded()
+  let last = ''
+  await expect
+    .poll(async () => {
+      const box = JSON.stringify(await locator.boundingBox())
+      const stable = box === last
+      last = box
+      return stable
+    })
+    .toBe(true)
+}
 
 /** Abre o menu "Nova seção" e escolhe o tipo. */
 async function addSection(page: Page, option: 'Cartão de imagem 3D' | 'Hero interativo (mouse e botão)') {
@@ -618,15 +632,191 @@ test('cria "PlayVídeo-VSL-01": link do vídeo, play grande na prévia e propor�
   await expect(frame.getByRole('heading', { level: 2, name: 'Veja em poucos minutos como podemos ajudar você' })).toBeVisible()
   await expect(frame.getByText('Vídeo em breve')).toBeVisible()
 
-  const link = page.getByRole('textbox', { name: 'Ou link direto do vídeo (MP4/WebM)' })
+  const link = page.getByRole('textbox', { name: 'Ou link direto (MP4/WebM ou YouTube)' })
   await link.fill('http://inseguro.com/vsl.mp4')
   await expect(page.getByText('Use um endereço que comece com https:// (sem espaços).')).toBeVisible()
   await link.fill('https://cdn.exemplo.test/vsl.mp4')
   await expect(frame.getByRole('button', { name: 'Assistir: Veja em poucos minutos como podemos ajudar você' })).toBeVisible()
   await expect(frame.locator('video')).toHaveAttribute('src', 'https://cdn.exemplo.test/vsl.mp4')
 
+  // Link do YouTube: a capa abre o player do YouTube (sem cookies), não um <video> quebrado.
+  await link.fill('https://www.youtube.com/watch?v=Tu2ttzIcnPQ')
+  await frame.getByRole('button', { name: 'Assistir: Veja em poucos minutos como podemos ajudar você' }).click()
+  await expect(frame.locator('iframe')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/Tu2ttzIcnPQ/)
+  await expect(frame.locator('video')).toHaveCount(0)
+  await link.fill('https://cdn.exemplo.test/vsl.mp4')
+
   await page.getByRole('combobox', { name: 'Proporção do player' }).click()
   await page.getByRole('option', { name: /Vertical 9:16/ }).click()
   await expect(frame.locator('.vp-frame')).toHaveAttribute('data-format', 'story')
   await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})
+
+
+test('seção carregada sob demanda (VSL) aparece ao rolar até ela no site público', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.route('https://cdn.exemplo.test/**', (route) => route.abort())
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: 'Nova seção' }).click()
+  await page.getByRole('menuitem', { name: 'Vídeo de vendas (VSL)' }).click()
+  await page.getByRole('textbox', { name: 'Ou link direto (MP4/WebM ou YouTube)' }).fill('https://cdn.exemplo.test/vsl.mp4')
+  await page.getByRole('button', { name: 'Publicar', exact: true }).click()
+  await expect(page.getByText('Publicada em', { exact: false })).toBeVisible()
+
+  await page.goto('/')
+  const frame = page.locator('.vp-frame')
+  await frame.scrollIntoViewIfNeeded()
+  // A animação de entrada dispara ao cruzar a tela: o VSL precisa chegar a opacidade 1.
+  await expect.poll(() => frame.evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
+  await expect(page.getByRole('button', { name: /^Assistir:/ })).toBeVisible()
+})
+
+test('excluir seção pede confirmação: cancelar mantém e excluir remove do rascunho', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: 'Nova seção' }).click()
+  await page.getByRole('menuitem', { name: 'Vídeo de vendas (VSL)' }).click()
+  // Ao criar, o painel da seção abre: volta para a lista de seções.
+  await page.getByRole('button', { name: 'Todas as seções' }).click()
+
+  // Cabeçalho e rodapé são fixos: não têm lixeira
+  expect(await page.getByRole('button', { name: 'Excluir Cabeçalho' }).count()).toBe(0)
+  expect(await page.getByRole('button', { name: 'Excluir Rodapé' }).count()).toBe(0)
+
+  await page.getByRole('button', { name: 'Excluir PlayVídeo-VSL-01' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Excluir esta seção?' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toContainText('"PlayVídeo-VSL-01" sai do rascunho')
+
+  await dialog.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Excluir PlayVídeo-VSL-01' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Excluir PlayVídeo-VSL-01' }).click()
+  await page.getByRole('dialog', { name: 'Excluir esta seção?' }).getByRole('button', { name: 'Excluir seção' }).click()
+  await expect(page.getByRole('button', { name: 'Excluir PlayVídeo-VSL-01' })).toHaveCount(0)
+  await expect(preview(page).getByRole('heading', { name: 'Veja em poucos minutos como podemos ajudar você' })).toHaveCount(0)
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})
+
+test('categorias: cria, move seções para dentro, tira delas e exclui sem apagar as seções', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await page.getByRole('button', { name: 'Nova categoria' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Nova categoria' })
+  const name = dialog.getByRole('textbox', { name: 'Nome da categoria' })
+  await name.fill('Menu')
+  await dialog.getByRole('button', { name: 'Criar categoria' }).click()
+
+  const group = page.getByRole('region', { name: 'Categoria Menu' })
+  await expect(group).toContainText('Nenhuma seção aqui')
+
+  await page.getByRole('button', { name: 'Categoria de Serviços' }).click()
+  await page.getByRole('menuitem', { name: 'Menu', exact: true }).click()
+  await page.getByRole('button', { name: 'Categoria de Sobre' }).click()
+  await page.getByRole('menuitem', { name: 'Menu', exact: true }).click()
+  await expect(group.getByRole('button', { name: 'Excluir Serviços' })).toBeVisible()
+  await expect(group.getByRole('button', { name: 'Excluir Sobre' })).toBeVisible()
+
+  // Tirar da categoria: a seção sai do bloco e volta para a lista geral
+  await page.getByRole('button', { name: 'Categoria de Sobre' }).click()
+  await page.getByRole('menuitem', { name: 'Sem categoria', exact: true }).click()
+  await expect(group.getByRole('button', { name: 'Excluir Sobre' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Excluir Sobre' })).toBeVisible()
+
+  // Excluir a categoria não apaga as seções
+  await page.getByRole('button', { name: 'Excluir categoria Menu' }).click()
+  await expect(page.getByRole('region', { name: 'Categoria Menu' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Excluir Serviços' })).toBeVisible()
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
+})
+
+/**
+ * Simula o arraste nativo: dragstart no card, depois dragover e drop no alvo (com o mesmo DataTransfer).
+ * O ponto do mouse no Chromium do Playwright começava no card vizinho, então os eventos são disparados
+ * direto nos elementos. A lógica de soltar (id do card, pasta de destino) é a mesma do uso real.
+ */
+async function dragCard(page: Page, source: Locator, target: Locator) {
+  await settle(source)
+  const from = await source.elementHandle()
+  await page.evaluate((el) => {
+    const dt = new DataTransfer()
+    ;(window as unknown as { dt: DataTransfer }).dt = dt
+    el.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }))
+  }, from)
+  await expect(target).toBeVisible()
+  const to = await target.elementHandle()
+  await page.evaluate((el) => {
+    const dt = (window as unknown as { dt: DataTransfer }).dt
+    el.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }))
+    el.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }))
+  }, to)
+}
+
+test('arrastar e soltar: card vai para a pasta da categoria e volta para "sem categoria"', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await page.getByRole('button', { name: 'Nova categoria' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Nova categoria' })
+  await dialog.getByRole('textbox', { name: 'Nome da categoria' }).fill('Menu')
+  await dialog.getByRole('button', { name: 'Criar categoria' }).click()
+  await expect(dialog).toBeHidden()
+
+  const group = page.getByRole('region', { name: 'Categoria Menu' })
+  await dragCard(page, page.locator('li[draggable="true"]').filter({ hasText: 'Serviços' }), group)
+  await expect(group.getByRole('button', { name: 'Excluir Serviços' })).toBeVisible()
+
+  await dragCard(page, group.locator('li[draggable="true"]').filter({ hasText: 'Serviços' }), page.getByText('Solte aqui para tirar da categoria'))
+  await expect(group.getByRole('button', { name: 'Excluir Serviços' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Excluir Serviços' })).toBeVisible()
+})
+
+test('categorias sobrevivem a salvar o rascunho e recarregar a página', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+  await page.getByRole('button', { name: 'Nova categoria' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Nova categoria' })
+  await dialog.getByRole('textbox', { name: 'Nome da categoria' }).fill('Menu')
+  await dialog.getByRole('button', { name: 'Criar categoria' }).click()
+  await expect(page.getByRole('region', { name: 'Categoria Menu' })).toBeVisible()
+  await page.getByRole('button', { name: 'Salvar rascunho' }).click()
+  await expect(page.getByText('Alterações não salvas')).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('region', { name: 'Categoria Menu' })).toBeVisible()
+})
+
+test('lista de seções: cards cabem na coluna, ícones visíveis e sem rolagem horizontal', async ({ page }) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  const card = page.locator('li').filter({ hasText: 'Destaque principal' }).first()
+  const icon = page.getByRole('button', { name: 'Excluir Destaque principal' })
+  await expect(icon).toBeVisible()
+  const cardBox = await card.boundingBox()
+  const iconBox = await icon.boundingBox()
+  if (!cardBox || !iconBox) throw new Error('card ou ícone sem posição')
+  // O ícone de excluir (o mais à direita) precisa estar dentro do card.
+  expect(iconBox.x + iconBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1)
+
+  // A coluna da lista não tem rolagem horizontal.
+  const overflowX = await card.evaluate((el) => {
+    let node: HTMLElement | null = el.parentElement
+    while (node && getComputedStyle(node).overflowY !== 'auto') node = node.parentElement
+    return node ? node.scrollWidth - node.clientWidth : 0
+  })
+  expect(overflowX).toBeLessThanOrEqual(1)
 })
