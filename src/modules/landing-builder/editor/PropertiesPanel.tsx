@@ -1,9 +1,12 @@
 import { ArrowDown, ArrowUp, CircleHelp, Copy, ListEnd, ListStart, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { Button, Tooltip } from '@/admin/ui'
 import { FieldsEditor } from '@/modules/home/FieldsEditor'
-import type { Block, LandingDocument } from '@/renderer/document-v2'
+import type { Block, BlockResponsive, BlockStyle, LandingDocument } from '@/renderer/document-v2'
 import { blockLabel, definitionOf } from '../blocks/definitions'
 import { PUBLIC_PREFIX } from '../schema/page-meta'
+import { ResponsivePanel } from './ResponsivePanel'
+import { StylePanel } from './StylePanel'
 
 export type BlockCommand = 'up' | 'down' | 'duplicate' | 'delete' | 'insert-before' | 'insert-after'
 
@@ -18,6 +21,8 @@ export function PropertiesPanel({
   canMoveDown,
   onChangeProps,
   onChangeSeo,
+  onChangeStyle,
+  onChangeResponsive,
   onCommand,
 }: {
   document: LandingDocument
@@ -27,8 +32,11 @@ export function PropertiesPanel({
   canMoveDown: boolean
   onChangeProps: (id: string, props: Data) => void
   onChangeSeo: (seo: LandingDocument['seo']) => void
+  onChangeStyle: (id: string, style: BlockStyle) => void
+  onChangeResponsive: (id: string, responsive: BlockResponsive) => void
   onCommand: (command: BlockCommand) => void
 }) {
+  const [tab, setTab] = useState<'content' | 'style' | 'responsive'>('content')
   if (!block) {
     return (
       <div className="grid gap-5">
@@ -97,7 +105,17 @@ export function PropertiesPanel({
         </div>
       </header>
 
-      {!definition ? (
+      <div role="tablist" aria-label="Propriedades do bloco" className="grid grid-cols-3 gap-1 rounded-admin bg-admin-sunken p-1">
+        {([
+          ['content', 'Conteúdo'], ['style', 'Estilo'], ['responsive', 'Responsivo'],
+        ] as const).map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className="rounded-admin px-2 py-2 text-admin-sm font-medium text-admin-ink-2 aria-selected:bg-admin-card aria-selected:text-admin-ink">{label}</button>)}
+      </div>
+
+      {tab === 'style' ? (
+        <StylePanel key={`${block.id}-style`} idPrefix={`style-${block.id}`} value={block.style ?? {}} onChange={(next) => onChangeStyle(block.id, next)} />
+      ) : tab === 'responsive' ? (
+        <ResponsivePanel key={`${block.id}-responsive`} value={block.responsive ?? {}} onChange={(next) => onChangeResponsive(block.id, next)} />
+      ) : !definition ? (
         <p role="alert" className="rounded-admin-md border border-admin-warning/30 bg-admin-warning-soft p-3 text-admin-sm text-admin-ink">
           Este bloco é de um tipo que esta versão do painel não conhece. Ele não aparece no site; você pode excluí-lo.
         </p>

@@ -30,10 +30,10 @@ export const SECTION_BLOCK_TYPES = [
 ] as const satisfies readonly Section['type'][]
 
 /** Contêiner do nível raiz: uma faixa da página que recebe elementos. */
-export const CONTAINER_BLOCK_TYPES = ['section'] as const
+export const CONTAINER_BLOCK_TYPES = ['section', 'columns', 'grid', 'column'] as const
 
 /** Elementos simples, sempre dentro de uma seção. Colunas e grade entram na Etapa 4. */
-export const ELEMENT_BLOCK_TYPES = ['heading', 'paragraph', 'image', 'button', 'spacer', 'divider'] as const
+export const ELEMENT_BLOCK_TYPES = ['heading', 'paragraph', 'image', 'button', 'spacer', 'divider', 'list', 'badge', 'icon', 'video', 'whatsapp-button', 'benefit-list'] as const
 
 export type SectionBlockType = (typeof SECTION_BLOCK_TYPES)[number]
 export type ContainerBlockType = (typeof CONTAINER_BLOCK_TYPES)[number]
@@ -57,6 +57,30 @@ export type ImageProps = { url: string; alt: string }
 export type ButtonProps = { link: LinkItem; variant: 'primary' | 'secondary' }
 export type SpacerProps = { size: 'sm' | 'md' | 'lg' | 'xl' }
 
+export const STYLE_SPACING = [0, 8, 16, 24, 32, 48, 64, 96, 128, 160] as const
+export type StyleSpacing = (typeof STYLE_SPACING)[number]
+export type BlockStyle = {
+  textSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl'
+  fontWeight?: 'normal' | 'medium' | 'semibold' | 'bold'
+  textAlign?: 'left' | 'center' | 'right'
+  maxWidth?: 'full' | 'sm' | 'md' | 'lg' | 'xl'
+  paddingX?: StyleSpacing
+  paddingY?: StyleSpacing
+  marginTop?: StyleSpacing
+  marginBottom?: StyleSpacing
+  gap?: StyleSpacing
+  color?: string
+  backgroundColor?: string
+  borderColor?: string
+  borderWidth?: 0 | 1 | 2 | 4
+  radius?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full'
+  shadow?: 'none' | 'sm' | 'md' | 'lg'
+}
+export type Device = 'desktop' | 'tablet' | 'mobile'
+export type BlockResponsive = { tablet?: Partial<BlockStyle>; mobile?: Partial<BlockStyle>; hideOn?: Device[] }
+export type LandingIdentity = { name: string; logoUrl: string; faviconUrl: string; whatsapp: string }
+export const DEFAULT_LANDING_IDENTITY: LandingIdentity = { name: 'Sua Empresa', logoUrl: '', faviconUrl: '', whatsapp: '' }
+
 export type Block = {
   /** Estável e único no documento. */
   id: string
@@ -65,6 +89,10 @@ export type Block = {
   v: number
   /** Conteúdo, validado pelo esquema do tipo. */
   props: Record<string, unknown>
+  /** Tokens fechados; nunca classes ou CSS livre. */
+  style?: BlockStyle
+  /** Tablet e mobile herdam os tokens anteriores e sobrescrevem apenas o que declararem. */
+  responsive?: BlockResponsive
   /** Só em contêineres (ver canInsert). */
   children?: Block[]
 }
@@ -75,6 +103,7 @@ export type LandingDocument = {
   schemaVersion: 2
   seo: LandingSeo
   theme: SiteTheme
+  identity: LandingIdentity
   blocks: Block[]
 }
 
@@ -94,6 +123,10 @@ export function isElementBlockType(type: unknown): type is ElementBlockType {
   return typeof type === 'string' && (ELEMENT_BLOCK_TYPES as readonly string[]).includes(type)
 }
 
+export function isNestedBlockType(type: unknown): type is ContainerBlockType | ElementBlockType {
+  return isBlockType(type) && !isRootBlockType(type)
+}
+
 /** Tipos que vivem no nível raiz da página: seções completas e a seção contêiner. */
 export function isRootBlockType(type: unknown): boolean {
   return isSectionBlockType(type) || type === 'section'
@@ -105,7 +138,9 @@ export function isRootBlockType(type: unknown): boolean {
  */
 export function canInsert(parent: BlockType | null, child: BlockType): boolean {
   if (parent === null) return isRootBlockType(child)
-  if (parent === 'section') return isElementBlockType(child)
+  if (parent === 'section') return child !== 'section' && child !== 'column' && !isSectionBlockType(child)
+  if (parent === 'columns' || parent === 'grid') return child === 'column'
+  if (parent === 'column') return isElementBlockType(child)
   return false
 }
 
@@ -125,11 +160,12 @@ export function blockIds(blocks: readonly Block[]): string[] {
 }
 
 /** Página em branco. O título de SEO nasce do nome da página, cortado no limite do campo. */
-export function createEmptyLanding(title: string, theme: SiteTheme): LandingDocument {
+export function createEmptyLanding(title: string, theme: SiteTheme, identity: LandingIdentity = DEFAULT_LANDING_IDENTITY): LandingDocument {
   return {
     schemaVersion: 2,
     seo: { title: title.trim().slice(0, 70), description: '' },
     theme,
+    identity: { ...identity },
     blocks: [],
   }
 }
@@ -147,10 +183,21 @@ export function blockToSection(block: Block): Section | null {
 }
 
 function fromV1(doc: PageDocument): LandingDocument {
+  const header = doc.sections.find((section) => section.type === 'site-header')
+  const contact = doc.sections.find((section) => section.type === 'contact')
+  const whatsapp = contact?.type === 'contact'
+    ? contact.channels.find((channel) => channel.kind === 'whatsapp')?.href?.replace(/^https:\/\/wa\.me\//, '') ?? ''
+    : ''
   return {
     schemaVersion: 2,
     seo: { title: doc.seo.title, description: doc.seo.description },
     theme: doc.theme,
+    identity: {
+      name: header?.type === 'site-header' ? header.brand.name : DEFAULT_LANDING_IDENTITY.name,
+      logoUrl: header?.type === 'site-header' ? header.logoUrl ?? '' : '',
+      faviconUrl: '',
+      whatsapp,
+    },
     blocks: doc.sections.map(sectionToBlock),
   }
 }
@@ -164,7 +211,7 @@ export function migrateDocument(value: unknown): LandingDocument | null {
   if (!isRecord(value)) return null
   if (value.schemaVersion === 2) {
     return Array.isArray(value.blocks) && isRecord(value.seo) && isRecord(value.theme)
-      ? (value as unknown as LandingDocument)
+      ? (isRecord(value.identity) ? (value as unknown as LandingDocument) : ({ ...value, identity: { ...DEFAULT_LANDING_IDENTITY } } as unknown as LandingDocument))
       : null
   }
   if (value.schemaVersion === 1) {

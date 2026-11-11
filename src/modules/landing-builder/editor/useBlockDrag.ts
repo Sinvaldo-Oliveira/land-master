@@ -1,5 +1,5 @@
 import { PointerSensor, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from '@dnd-kit/core'
-import { useCallback, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import type { LandingDocument } from '@/renderer/document-v2'
 import { dropAnchor, resolveDrop, type DragSource, type InsertTarget } from '../state/editor'
 import { blockElement, blockIdAt, containsPoint, frameOf, toFramePoint, toPanelBox, verticalRatio, type Box } from './canvas-geometry'
@@ -80,23 +80,50 @@ export function useBlockDrag({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const [source, setSource] = useState<DragSource | null>(null)
   const [drop, setDrop] = useState<DropState | null>(null)
+  const dropRef = useRef<DropState | null>(null)
+  const pointerRef = useRef<{ x: number; y: number } | null>(null)
+  // Guarda somente o estado que chegou a ser desenhado. Eventos enfileirados no mesmo quadro nÃ£o
+  // podem mudar silenciosamente o destino depois que a pessoa viu o indicador.
+  useLayoutEffect(() => {
+    dropRef.current = drop
+  }, [drop])
+  useEffect(() => {
+    const track = (event: PointerEvent) => { pointerRef.current = { x: event.clientX, y: event.clientY } }
+    window.addEventListener('pointermove', track, true)
+    return () => window.removeEventListener('pointermove', track, true)
+  }, [])
 
   const onDragStart = useCallback((event: DragStartEvent) => {
+    const start = event.activatorEvent
+    if (start instanceof MouseEvent) pointerRef.current = { x: start.clientX, y: start.clientY }
+    // Congela a rolagem suave iniciada ao selecionar/inserir um bloco. Sem isso, o alvo pode
+    // continuar se movendo sob o ponteiro durante um segundo arraste feito logo em seguida.
+    const iframe = frameOf(canvasRef.current)?.iframe
+    const view = iframe?.contentWindow
+    if (view && iframe.contentDocument) {
+      // `auto` ainda obedece ao `scroll-behavior: smooth` da pÃ¡gina; a sobrescrita inline torna
+      // o cancelamento imediato. Fica restrita ao documento de prÃ©via do editor.
+      iframe.contentDocument.documentElement.style.scrollBehavior = 'auto'
+      view.scrollTo({ top: view.scrollY, behavior: 'auto' })
+    }
     setSource((event.active.data.current?.source as DragSource | undefined) ?? null)
     setDrop(null)
-  }, [])
+  }, [canvasRef])
 
   const locate = useCallback(
     (event: DragMoveEvent | DragEndEvent): DropState | null => {
       const dragged = event.active.data.current?.source as DragSource | undefined
-      const pointer = pointerOf(event)
+      const pointer = pointerRef.current ?? pointerOf(event)
       if (!dragged || !pointer) return null
       return hitLayers(doc, dragged, pointer.x, pointer.y) ?? hitCanvas(doc, dragged, pointer.x, pointer.y, canvasRef.current)
     },
     [doc, canvasRef],
   )
 
-  const onDragMove = useCallback((event: DragMoveEvent) => setDrop(locate(event)), [locate])
+  const onDragMove = useCallback((event: DragMoveEvent) => {
+    const next = locate(event)
+    setDrop(next)
+  }, [locate])
 
   const finish = useCallback(() => {
     setSource(null)
@@ -106,8 +133,8 @@ export function useBlockDrag({
   const onDragEnd = useCallback(
     (event: DragEndEvent) => {
       const dragged = event.active.data.current?.source as DragSource | undefined
-      // Recalcula no ponto exato em que a pessoa soltou (o último movimento pode estar defasado).
-      const final = locate(event)
+      // O indicador desenhado é o contrato visual; só recalcula se ainda não houve destino.
+      const final = dropRef.current ?? locate(event)
       finish()
       if (dragged && final) onDrop(dragged, final.target)
     },

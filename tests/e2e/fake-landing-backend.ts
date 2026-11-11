@@ -22,12 +22,13 @@ export type Row = {
 
 export type Backend = { rows: Row[]; calls: { name: string; body: Record<string, unknown> }[] }
 
-const RPCS = 'save_page_draft|list_landing_pages|create_landing_page|duplicate_page|update_page_meta|unpublish_page|archive_page|restore_page|delete_page'
+const RPCS = 'save_page_draft|publish_page|get_public_landing|list_landing_pages|create_landing_page|duplicate_page|update_page_meta|unpublish_page|archive_page|restore_page|delete_page'
 
 export async function fakeLandingBackend(page: Page, role: FakeRole, seed: Partial<Row>[] = []): Promise<Backend> {
   let clock = Date.parse('2026-11-01T12:00:00Z')
   const tick = () => new Date((clock += 60_000)).toISOString()
   const backend: Backend = { rows: [], calls: [] }
+  const published = new Map<string, unknown>()
   for (const [index, partial] of seed.entries()) {
     const now = tick()
     backend.rows.push({
@@ -59,6 +60,11 @@ export async function fakeLandingBackend(page: Page, role: FakeRole, seed: Parti
 
     const name = path.split('/').pop() ?? ''
     backend.calls.push({ name, body })
+    if (name === 'get_public_landing') {
+      const row = backend.rows.find((item) => item.slug === body.p_slug && item.status === 'published')
+      const document = row ? published.get(row.id) : null
+      return route.fulfill(json(row && document ? { title: row.title, slug: row.slug, document } : null))
+    }
     if (role !== 'admin') return route.fulfill(json({ code: '42501', message: 'Apenas administradores.' }, 403))
 
     const row = backend.rows.find((item) => item.id === body.p_page_id)
@@ -94,6 +100,12 @@ export async function fakeLandingBackend(page: Page, role: FakeRole, seed: Parti
         }
         row.draft_document = body.p_document
         row.draft_updated_at = tick()
+        return route.fulfill(json(row))
+      case 'publish_page':
+        if (!row) return missing()
+        published.set(row.id, structuredClone(row.draft_document))
+        row.status = 'published'
+        row.published_at = tick()
         return route.fulfill(json(row))
       case 'update_page_meta':
         if (!row) return missing()

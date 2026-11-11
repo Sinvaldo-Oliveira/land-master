@@ -160,6 +160,7 @@ export type Database = {
       save_page_draft: { Args: { p_page_id: string; p_document: Json; p_expected_updated_at?: string | null }; Returns: PageRow }
       publish_page: { Args: { p_page_id: string }; Returns: PageRow }
       get_public_site: { Args: Record<PropertyKey, never>; Returns: Json }
+      get_public_landing: { Args: { p_slug: string }; Returns: Json }
       create_landing_page: { Args: { p_title: string; p_slug: string; p_document: Json }; Returns: PageRow }
       duplicate_page: { Args: { p_page_id: string; p_title: string; p_slug: string }; Returns: PageRow }
       update_page_meta: {

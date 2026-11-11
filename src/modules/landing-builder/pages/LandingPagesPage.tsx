@@ -4,6 +4,7 @@ import {
   ArchiveRestore,
   Copy,
   EllipsisVertical,
+  ExternalLink,
   EyeOff,
   FileStack,
   LayoutGrid,
@@ -214,8 +215,11 @@ export default function LandingPagesPage() {
                         </Link>
                       </h2>
                       <p className="mt-0.5 truncate font-admin-mono text-admin-sm text-admin-ink-2">
-                        {PUBLIC_PREFIX}
-                        {page.slug}
+                        {page.status === 'published' ? (
+                          <a href={`${PUBLIC_PREFIX}${page.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-admin-accent-hover" title="Abrir landing publicada">
+                            {PUBLIC_PREFIX}{page.slug}<ExternalLink aria-hidden="true" className="size-3" />
+                          </a>
+                        ) : <>{PUBLIC_PREFIX}{page.slug}</>}
                       </p>
                     </div>
                     <PageMenu page={page} onAction={(action) => setPending({ page, action })} onRestore={() => void restore(page)} />
@@ -257,8 +261,11 @@ export default function LandingPagesPage() {
                         </Link>
                       </th>
                       <td className="px-4 py-3 font-admin-mono text-admin-sm text-admin-ink-2">
-                        {PUBLIC_PREFIX}
-                        {page.slug}
+                        {page.status === 'published' ? (
+                          <a href={`${PUBLIC_PREFIX}${page.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-admin-accent-hover" title="Abrir landing publicada">
+                            {PUBLIC_PREFIX}{page.slug}<ExternalLink aria-hidden="true" className="size-3" />
+                          </a>
+                        ) : <>{PUBLIC_PREFIX}{page.slug}</>}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1.5">

@@ -1,9 +1,9 @@
 import { requireSupabase } from '@/lib/supabase'
 import { supabaseErrorMessage } from '@/lib/supabase-errors'
 import { fetchHomePage } from '@/modules/home/api'
-import { createEmptyLanding, type LandingDocument } from '@/renderer/document-v2'
+import { createEmptyLanding, DEFAULT_LANDING_IDENTITY, type LandingDocument, type LandingIdentity } from '@/renderer/document-v2'
 import { horizonteTheme } from '@/renderer/templates/institucional'
-import type { SiteTheme } from '@/renderer/types'
+import type { PageDocument, SiteTheme } from '@/renderer/types'
 import type { Json, LandingPageSummary, PageStatus } from '@/types/database'
 import { validateLandingDocument } from '../schema/document'
 import type { PageMetaValues } from '../schema/page-meta'
@@ -32,17 +32,33 @@ export async function fetchLandingPages(): Promise<LandingPageSummary[]> {
  * Tema inicial de uma página nova: o do site (rascunho da Home), para a landing nascer com a marca.
  * Sem Home criada, usa o tema padrão. O kit de identidade global entra na Etapa 4.
  */
-async function initialTheme(): Promise<SiteTheme> {
+export function identityFromHome(document: PageDocument): LandingIdentity {
+  const header = document.sections.find((section) => section.type === 'site-header')
+  const contact = document.sections.find((section) => section.type === 'contact')
+  const channel = contact?.type === 'contact' ? contact.channels.find((item) => item.kind === 'whatsapp') : undefined
+  const hrefNumber = channel?.href?.match(/wa\.me\/(\d{8,15})/)?.[1]
+  const valueNumber = channel?.value.replace(/\D/g, '')
+  return {
+    name: header?.type === 'site-header' ? header.brand.name : DEFAULT_LANDING_IDENTITY.name,
+    logoUrl: header?.type === 'site-header' ? header.logoUrl ?? '' : '',
+    faviconUrl: '',
+    whatsapp: hrefNumber ?? (valueNumber && valueNumber.length >= 8 && valueNumber.length <= 15 ? valueNumber : ''),
+  }
+}
+
+async function initialSettings(): Promise<{ theme: SiteTheme; identity: LandingIdentity }> {
   try {
-    return (await fetchHomePage())?.draft_document.theme ?? horizonteTheme
+    const home = (await fetchHomePage())?.draft_document
+    return home ? { theme: home.theme, identity: identityFromHome(home) } : { theme: horizonteTheme, identity: DEFAULT_LANDING_IDENTITY }
   } catch {
-    return horizonteTheme
+    return { theme: horizonteTheme, identity: DEFAULT_LANDING_IDENTITY }
   }
 }
 
 /** Cria uma landing em branco. O documento é validado aqui e de novo no banco. */
 export async function createBlankLandingPage(meta: PageMetaValues): Promise<{ id: string }> {
-  const document: LandingDocument = createEmptyLanding(meta.title, await initialTheme())
+  const settings = await initialSettings()
+  const document: LandingDocument = createEmptyLanding(meta.title, settings.theme, settings.identity)
   const issues = validateLandingDocument(document)
   if (issues[0]) throw new Error(issues[0].message)
 
@@ -140,5 +156,12 @@ export async function saveLandingDraft(pageId: string, document: LandingDocument
     p_expected_updated_at: expectedUpdatedAt,
   })
   if (error) throw new Error(message(error, 'Não foi possível salvar o rascunho.'))
+  return asDraft(data)
+}
+
+/** Cria uma versão imutável do rascunho atual e a coloca no ar. */
+export async function publishLandingPage(pageId: string): Promise<LandingPageDraft> {
+  const { data, error } = await requireSupabase().rpc('publish_page', { p_page_id: pageId })
+  if (error) throw new Error(message(error, 'Não foi possível publicar a landing page.'))
   return asDraft(data)
 }

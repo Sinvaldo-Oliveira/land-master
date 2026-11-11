@@ -67,7 +67,7 @@ export default function NewLandingPage() {
               <FilePlus2 aria-hidden="true" className="size-4 text-admin-accent" />
               Começar do zero
             </p>
-            <p className="mt-1 text-admin-sm text-admin-ink-2">Página em branco, com as cores e fontes do seu site.</p>
+            <p className="mt-1 text-admin-sm text-admin-ink-2">Página em branco, com nome, logo, WhatsApp, cores e fontes do seu site.</p>
           </div>
           <div className="rounded-admin-lg border border-dashed border-admin-rule-strong p-4">
             <p className="flex flex-wrap items-center gap-2 font-medium text-admin-ink-2">

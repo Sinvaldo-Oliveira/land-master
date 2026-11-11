@@ -1,6 +1,6 @@
 # Plano de Implementação — Landing Page Builder
 
-> 2026-11-11 · Status: **Etapa 1 implementada em 2026-11-11** (autorizada pelo responsável); falta você rodar o script do banco. **Etapas 2 e 3 implementadas em 2026-11-11.** Etapa 4 aguarda autorização. Detalha a Fase 5 (e parte das Fases 6 e 8) do [PLANO_DESENVOLVIMENTO](PLANO_DESENVOLVIMENTO.md).
+> 2026-11-11 · Status: **Etapas 1 a 4 implementadas em 2026-11-11.** Na Etapa 1 ainda falta você rodar o script do banco. Detalha a Fase 5 (e parte das Fases 6 e 8) do [PLANO_DESENVOLVIMENTO](PLANO_DESENVOLVIMENTO.md).
 > Regra: uma etapa por vez, cada uma com autorização explícita. Nenhuma etapa é dada como pronta sem os testes indicados.
 
 ## Antes de começar (pendências de ambiente)
@@ -54,6 +54,8 @@ Cada etapa termina com: typecheck, lint, testes unitários, E2E, build, orçamen
 - **Pronto quando:** toda movimentação altera o documento (testado sem interface) e pode ser desfeita; estrutura inválida é impossível de criar.
 
 ### Etapa 4 — Estilo e responsividade
+
+> Entregue em 2026-11-11: estilos por tokens validados, abas Estilo e Responsivo, herança desktop → tablet → celular, visibilidade por dispositivo, Colunas, Coluna, Grade, Lista, Selo, Ícone, Vídeo com legenda WebVTT, Botão WhatsApp e Lista de benefícios. Páginas novas copiam tema, nome, logo e WhatsApp do rascunho da Home; documentos v2 antigos recebem defaults ao abrir. Nenhuma classe ou CSS livre entra no documento.
 
 - Aba Estilo (tipografia, cores, fundo, espaçamentos, borda, raio, sombra) por tokens.
 - Aba Responsivo: override por dispositivo e ocultar por dispositivo.

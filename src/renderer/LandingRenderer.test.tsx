@@ -22,6 +22,14 @@ describe('canInsert', () => {
     expect(canInsert('heading', 'paragraph')).toBe(false)
     expect(canInsert('faq', 'heading')).toBe(false)
   })
+
+  it('colunas e grade aceitam colunas; colunas aceitam elementos', () => {
+    expect(canInsert('section', 'columns' as never)).toBe(true)
+    expect(canInsert('columns' as never, 'column' as never)).toBe(true)
+    expect(canInsert('grid' as never, 'column' as never)).toBe(true)
+    expect(canInsert('column' as never, 'heading')).toBe(true)
+    expect(canInsert('columns' as never, 'heading')).toBe(false)
+  })
 })
 
 describe('LandingRenderer', () => {
@@ -80,6 +88,33 @@ describe('LandingRenderer', () => {
     const { container } = render(<LandingRenderer preview document={page(section(el('p', 'paragraph', { text: '<img src=x onerror=alert(1)>', size: 'md' })))} />)
     expect(container.querySelector('img')).toBeNull()
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument()
+  })
+
+  it('aplica estilo e responsividade somente por variáveis internas validadas', () => {
+    const heading = el('t', 'heading', { text: 'Com estilo', level: 'h2' })
+    heading.style = { color: '#112233', paddingY: 24, textAlign: 'right' }
+    heading.responsive = { mobile: { paddingY: 8, textAlign: 'center' }, hideOn: ['tablet'] }
+    render(<LandingRenderer preview document={page(section(heading))} />)
+    const node = screen.getByRole('heading', { name: 'Com estilo' })
+    expect(node).toHaveClass('lb-styled')
+    expect(node).toHaveClass('lb-color', 'lb-padding-y', 'lb-text-align', 'lb-mobile-padding-y', 'lb-mobile-text-align')
+    expect(node).not.toHaveClass('lb-font-weight', 'lb-background')
+    expect(node.getAttribute('style')).toContain('--lb-color: #112233')
+    expect(node.getAttribute('style')).toContain('--lb-mobile-padding-y: 8')
+    expect(node).toHaveAttribute('data-hide-on', 'tablet')
+  })
+
+  it('desenha os blocos de estrutura, mídia e conversão da Etapa 4', () => {
+    const columns = el('cols', 'columns' as never, { proportions: '1-1', stackOnMobile: 'stack' }, [
+      el('col1', 'column' as never, {}, [el('badge', 'badge' as never, { text: 'Novo', tone: 'primary' })]),
+      el('col2', 'column' as never, {}, [el('benefits', 'benefit-list' as never, { items: ['Entrega rápida', 'Suporte humano'] })]),
+    ])
+    const grid = el('grid', 'grid' as never, { columns: 2 }, [el('col3', 'column' as never, {}, [el('list', 'list' as never, { items: ['Um', 'Dois'], ordered: 'numbers' })])])
+    render(<LandingRenderer preview document={page(section(columns, grid, el('wa', 'whatsapp-button' as never, { label: 'Conversar', phone: '5511999999999', message: 'Olá' })))} />)
+    expect(screen.getByText('Novo')).toBeInTheDocument()
+    expect(screen.getByText('Entrega rápida')).toBeInTheDocument()
+    expect(screen.getByText('Um').closest('ol')).not.toBeNull()
+    expect(screen.getByRole('link', { name: /Conversar/ })).toHaveAttribute('href', 'https://wa.me/5511999999999?text=Ol%C3%A1')
   })
 
   it('ignora bloco desconhecido, elemento solto na raiz e seção dentro de seção, sem quebrar a página', () => {
@@ -145,5 +180,70 @@ describe('LandingRenderer', () => {
   it('sem o modo de edição não há marcação de bloco no HTML', () => {
     const { container } = render(<LandingRenderer preview document={page(section(el('t', 'heading', { text: 'Título', level: 'h2' })))} />)
     expect(container.querySelector('[data-block-id]')).toBeNull()
+  })
+})
+
+describe('LandingRenderer: contêineres sem conteúdo visível (faixa em branco no site)', () => {
+  const sectionWith = (id: string, children: Block[], props: Record<string, unknown> = {}) =>
+    el(id, 'section', { tone: 'light', width: 'normal', align: 'center', ...props }, children)
+  const heading = (id: string, text: string, responsive?: Block['responsive']) => ({
+    ...el(id, 'heading', { text, level: 'h2' }),
+    ...(responsive ? { responsive } : {}),
+  })
+
+  it('seção vazia no topo não deixa espaço em branco antes da próxima seção', () => {
+    const { container } = render(
+      <LandingRenderer preview document={page(sectionWith('vazia', []), sectionWith('cheia', [heading('t', 'Conteúdo')]))} />,
+    )
+    expect(container.querySelectorAll('section')).toHaveLength(1)
+    expect(container.querySelector('main')?.firstElementChild?.textContent).toBe('Conteúdo')
+  })
+
+  it('seção só com imagem ou vídeo ainda não enviados também não aparece', () => {
+    const { container } = render(
+      <LandingRenderer
+        preview
+        document={page(
+          sectionWith('s-img', [el('img', 'image', { url: '', alt: '' })]),
+          sectionWith('s-vid', [el('vid', 'video', { url: '', poster: '', captions: '', label: '' })]),
+        )}
+      />,
+    )
+    expect(container.querySelectorAll('section')).toHaveLength(0)
+  })
+
+  it('colunas sem nada visível não aparecem, e a seção que só tinha elas também não', () => {
+    const columns = el('cols', 'columns', { proportions: '1-1', stackOnMobile: 'stack' }, [el('c1', 'column', {}, []), el('c2', 'column', {}, [])])
+    const { container } = render(<LandingRenderer preview document={page(sectionWith('s', [columns]))} />)
+    expect(container.querySelector('main')?.childElementCount).toBe(0)
+  })
+
+  it('seção cujos elementos estão todos ocultos no computador também se oculta no computador', () => {
+    const { container } = render(
+      <LandingRenderer
+        preview
+        document={page(
+          sectionWith('so-mobile', [heading('a', 'Só no celular', { hideOn: ['desktop', 'tablet'] }), heading('b', 'Também', { hideOn: ['desktop'] })]),
+          sectionWith('misturada', [heading('c', 'Some no PC', { hideOn: ['desktop'] }), heading('d', 'Sempre aparece')]),
+        )}
+      />,
+    )
+    const [first, second] = [...container.querySelectorAll('main > *')]
+    // Oculta onde TODOS os filhos estão ocultos (computador), visível no tablet porque "Também" aparece lá.
+    expect(first?.getAttribute('data-hide-on')).toBe('desktop')
+    // Um filho sempre visível: a seção não herda ocultação nenhuma.
+    expect(second?.hasAttribute('data-hide-on')).toBe(false)
+  })
+
+  it('no editor a seção vazia continua desenhada, com o aviso, para poder ser selecionada', () => {
+    const { container } = render(
+      <LandingRenderer
+        preview
+        document={page(sectionWith('vazia', []))}
+        edit={{ attrs: (b) => ({ 'data-block-id': b.id }), placeholder: () => <span>aviso de vazio</span> }}
+      />,
+    )
+    expect(container.querySelector('[data-block-id="vazia"]')).not.toBeNull()
+    expect(screen.getByText('aviso de vazio')).toBeInTheDocument()
   })
 })

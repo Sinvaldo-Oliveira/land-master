@@ -1,9 +1,11 @@
 import {
   canInsert,
   countBlocks,
-  isElementBlockType,
+  isNestedBlockType,
   MAX_BLOCKS,
   type Block,
+  type BlockResponsive,
+  type BlockStyle,
   type BlockType,
   type LandingDocument,
 } from '@/renderer/document-v2'
@@ -53,6 +55,36 @@ export function updateBlockProps(doc: LandingDocument, id: string, props: Record
       siblings.map((block) => (block.id === id ? { ...block, props } : block)),
     ),
   )
+}
+
+function updateBlock(doc: LandingDocument, id: string, change: (block: Block) => Block): LandingDocument {
+  const location = findBlock(doc.blocks, id)
+  if (!location) return doc
+  return withBlocks(doc, mapSiblings(doc.blocks, location.parent?.id ?? null, (siblings) => siblings.map((block) => (block.id === id ? change(block) : block))))
+}
+
+export function updateBlockStyle(doc: LandingDocument, id: string, style: BlockStyle): LandingDocument {
+  return updateBlock(doc, id, (block) => {
+    const clean = Object.fromEntries(Object.entries(style).filter(([, value]) => value !== undefined)) as BlockStyle
+    const { style: _style, ...rest } = block
+    return Object.keys(clean).length > 0 ? { ...rest, style: clean } : rest
+  })
+}
+
+export function updateBlockResponsive(doc: LandingDocument, id: string, responsive: BlockResponsive): LandingDocument {
+  return updateBlock(doc, id, (block) => {
+    const cleanStyle = (style: BlockStyle | undefined): BlockStyle | undefined => {
+      if (!style) return undefined
+      const clean = Object.fromEntries(Object.entries(style).filter(([, value]) => value !== undefined)) as BlockStyle
+      return Object.keys(clean).length > 0 ? clean : undefined
+    }
+    const tablet = cleanStyle(responsive.tablet)
+    const mobile = cleanStyle(responsive.mobile)
+    const hideOn = responsive.hideOn && responsive.hideOn.length > 0 ? [...new Set(responsive.hideOn)] : undefined
+    const clean = { ...(tablet ? { tablet } : {}), ...(mobile ? { mobile } : {}), ...(hideOn ? { hideOn } : {}) }
+    const { responsive: _responsive, ...rest } = block
+    return Object.keys(clean).length > 0 ? { ...rest, responsive: clean } : rest
+  })
 }
 
 /** Insere `block` em `parentId` (null = raiz) na posição `index`. Estrutura inválida ou limite estourado: nada muda. */
@@ -147,7 +179,7 @@ export function placeBlock(
 ): { doc: LandingDocument; id: string | null } {
   const done = (next: LandingDocument) => (next === doc ? { doc, id: null } : { doc: next, id: block.id })
   const ref = target ? findBlock(doc.blocks, target.refId) : null
-  const element = isElementBlockType(block.type)
+  const element = isNestedBlockType(block.type)
 
   if (element) {
     if (ref && target) {
@@ -204,7 +236,7 @@ export function dropAnchor(doc: LandingDocument, source: DragSource, hoveredId: 
   const type = dragType(doc, source)
   const hovered = findBlock(doc.blocks, hoveredId)
   if (!type || !hovered) return null
-  if (isElementBlockType(type)) return hovered.block.id
+  if (isNestedBlockType(type)) return hovered.block.id
   return hovered.parent ? hovered.parent.id : hovered.block.id
 }
 
@@ -219,7 +251,7 @@ export function resolveDrop(doc: LandingDocument, source: DragSource, anchorId: 
   const half: InsertTarget['position'] = ratio < 0.5 ? 'before' : 'after'
 
   let target: InsertTarget
-  if (isElementBlockType(type)) {
+  if (isNestedBlockType(type)) {
     if (anchor.parent) {
       // Sobre outro elemento: antes ou depois dele.
       if (!canInsert(anchor.parent.type, type)) return null

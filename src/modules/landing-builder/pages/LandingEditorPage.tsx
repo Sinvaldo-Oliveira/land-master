@@ -1,6 +1,6 @@
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, FileQuestion, Monitor, MonitorSmartphone, Redo2, Smartphone, Tablet, TriangleAlert, Undo2 } from 'lucide-react'
+import { ArrowLeft, ExternalLink, FileQuestion, Monitor, MonitorSmartphone, Redo2, Send, Smartphone, Tablet, TriangleAlert, Undo2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { Link, useBlocker, useParams } from 'react-router'
 import { useDocumentTitle } from '@/admin/hooks/useDocumentTitle'
@@ -21,7 +21,7 @@ import {
 } from '@/admin/ui'
 import { cn } from '@/lib/cn'
 import { PreviewFrame, type PreviewDevice } from '@/modules/home/PreviewFrame'
-import type { BlockType, LandingDocument } from '@/renderer/document-v2'
+import { canInsert, type BlockType, type LandingDocument } from '@/renderer/document-v2'
 import { LandingRenderer, type LandingEditHooks } from '@/renderer/LandingRenderer'
 import { blockLabel, createBlock, definitionOf } from '../blocks/definitions'
 import { BlockLibrary } from '../editor/BlockLibrary'
@@ -30,7 +30,7 @@ import { LayersPanel } from '../editor/LayersPanel'
 import { PropertiesPanel, type BlockCommand } from '../editor/PropertiesPanel'
 import { useBlockDrag } from '../editor/useBlockDrag'
 import { parseLandingDocument, validateLandingDocument, type LandingIssue } from '../schema/document'
-import { fetchLandingPage, LANDING_PAGES_KEY, saveLandingDraft, type LandingPageDraft } from '../services/pages'
+import { fetchLandingPage, LANDING_PAGES_KEY, publishLandingPage, saveLandingDraft, type LandingPageDraft } from '../services/pages'
 import {
   canMove,
   defaultTarget,
@@ -43,6 +43,8 @@ import {
   removeBlock,
   setSeo,
   updateBlockProps,
+  updateBlockResponsive,
+  updateBlockStyle,
   type DragSource,
   type InsertTarget,
 } from '../state/editor'
@@ -140,6 +142,7 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
   const queryClient = useQueryClient()
   const canvasRef = useRef<HTMLElement>(null)
   const [saved, setSaved] = useState({ document: initial, updatedAt: page.draft_updated_at })
+  const [status, setStatus] = useState(page.status)
   const [history, setHistory] = useState(() => createHistory(initial))
   const doc = history.present
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -176,6 +179,20 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
     onError: (error) => toast.error(error.message, { duration: Infinity }),
   })
 
+  const publish = useMutation({
+    mutationFn: async (document: LandingDocument) => {
+      if (document !== saved.document) await saveLandingDraft(page.id, document, saved.updatedAt)
+      return publishLandingPage(page.id)
+    },
+    onSuccess: (row, document) => {
+      setSaved({ document, updatedAt: row.draft_updated_at })
+      setStatus(row.status)
+      void queryClient.invalidateQueries({ queryKey: LANDING_PAGES_KEY })
+      toast.success('Landing publicada.')
+    },
+    onError: (error) => toast.error(error.message, { duration: Infinity }),
+  })
+
   const requestSave = useCallback(() => {
     if (save.isPending || doc === saved.document) return
     setAttempted(true)
@@ -186,6 +203,17 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
     }
     save.mutate(doc)
   }, [doc, save, saved.document])
+
+  const requestPublish = useCallback(() => {
+    if (save.isPending || publish.isPending) return
+    setAttempted(true)
+    const found = validateLandingDocument(doc)
+    if (found.length > 0) {
+      toast.error(found.length === 1 ? 'Há 1 problema a corrigir antes de publicar.' : `Há ${found.length} problemas a corrigir antes de publicar.`, { duration: 6000 })
+      return
+    }
+    publish.mutate(doc)
+  }, [doc, publish, save.isPending])
 
   // Protege alterações não salvas (navegação interna e fechamento da aba).
   const blocker = useBlocker(dirty)
@@ -205,7 +233,7 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
   /** Bloco novo (clique na biblioteca ou arraste). `target` null = fim da página. */
   const insertNew = useCallback(
     (type: BlockType, target: InsertTarget | null) => {
-      const result = placeBlock(doc, createBlock(type), target, () => createBlock('section'))
+      const result = placeBlock(doc, createBlock(type, undefined, doc.identity), target, () => createBlock('section'))
       if (!result.id) {
         toast.error('Não foi possível inserir o bloco: a página chegou ao limite de blocos.')
         return
@@ -217,7 +245,10 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
     [commit, doc, selectAndReveal],
   )
 
-  const pick = (type: BlockType) => insertNew(type, pendingInsert ?? defaultTarget(doc, selectedId))
+  const pick = (type: BlockType) => insertNew(
+    type,
+    pendingInsert ?? (selected && canInsert(selected.type, type) ? { refId: selected.id, position: 'inside' } : defaultTarget(doc, selectedId)),
+  )
 
   const command = useCallback(
     (name: BlockCommand) => {
@@ -323,7 +354,11 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
       }),
       placeholder: (block) => (
         <div className="lb-placeholder">
-          {block.type === 'section' ? 'Seção vazia. Escolha ou arraste um elemento da lista de blocos.' : 'Imagem ainda não enviada.'}
+          {block.type === 'image'
+            ? 'Imagem ainda não enviada. Enquanto isso, ela não aparece no site.'
+            : block.type === 'video'
+              ? 'Vídeo ainda não enviado. Enquanto isso, ele não aparece no site.'
+              : `${block.type === 'section' ? 'Seção vazia' : 'Área vazia'}. Escolha ou arraste um elemento da lista de blocos. Vazia, ela não aparece no site.`}
         </div>
       ),
     }),
@@ -371,7 +406,7 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-admin-display text-admin-xl font-semibold text-admin-ink">{page.title}</h1>
             <p className="flex flex-wrap items-center gap-2 text-admin-sm text-admin-ink-2">
-              <Badge tone={page.status === 'published' ? 'success' : 'neutral'}>{statusLabels[page.status]}</Badge>
+              <Badge tone={status === 'published' ? 'success' : 'neutral'}>{statusLabels[status]}</Badge>
               <span role="status" aria-live="polite">
                 {save.isPending ? 'Salvando…' : dirty ? 'Alterações não salvas' : 'Tudo salvo'}
               </span>
@@ -402,7 +437,19 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
               </button>
             ))}
           </div>
-          <Button disabled={!dirty} loading={save.isPending} onClick={requestSave}>
+          {status === 'published' ? (
+            <Button asChild variant="secondary">
+              <a href={`/lp/${page.slug}`} target="_blank" rel="noreferrer">
+                <ExternalLink aria-hidden="true" />
+                Ver landing publicada
+              </a>
+            </Button>
+          ) : null}
+          <Button disabled={save.isPending || publish.isPending || (status === 'published' && !dirty)} loading={publish.isPending} onClick={requestPublish}>
+            <Send aria-hidden="true" />
+            Publicar landing
+          </Button>
+          <Button disabled={!dirty || publish.isPending} loading={save.isPending} onClick={requestSave}>
             Salvar rascunho
           </Button>
         </header>
@@ -507,6 +554,8 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
                 canMoveUp={selected ? canMove(doc, selected.id, -1) : false}
                 canMoveDown={selected ? canMove(doc, selected.id, 1) : false}
                 onChangeProps={(blockId, props) => commit((current) => updateBlockProps(current, blockId, props), `props:${blockId}`)}
+                onChangeStyle={(blockId, style) => commit((current) => updateBlockStyle(current, blockId, style), `style:${blockId}`)}
+                onChangeResponsive={(blockId, responsive) => commit((current) => updateBlockResponsive(current, blockId, responsive), `responsive:${blockId}`)}
                 onChangeSeo={(seo) => commit((current) => setSeo(current, seo), 'seo')}
                 onCommand={command}
               />

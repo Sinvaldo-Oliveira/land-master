@@ -44,15 +44,19 @@ const savedBlocks = (backend: { rows: Row[] }) =>
 
 /** Arrasta com o mouse real: do centro da origem até uma fração da altura do destino. */
 async function dragTo(page: Page, source: Locator, target: Locator, ratio: number, check?: () => Promise<void>) {
+  // A biblioteca cresceu na Etapa 4 e agora rola: cada gesto começa com origem e destino realmente visíveis.
+  await source.scrollIntoViewIfNeeded()
+  await target.scrollIntoViewIfNeeded()
   const from = await source.boundingBox()
-  const to = await target.boundingBox()
-  if (!from || !to) throw new Error('Origem ou destino do arraste fora da tela.')
-  const x = to.x + to.width / 2
-  const y = to.y + to.height * ratio
+  const initialTarget = await target.boundingBox()
+  if (!from || !initialTarget) throw new Error('Origem ou destino do arraste fora da tela.')
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
   await page.mouse.down()
   // Passos intermediários: o arraste só começa depois de alguns pixels de movimento.
   await page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2 + 12, { steps: 3 })
+  // O alvo foi medido antes da ativação para reproduzir a coordenada escolhida pelo usuário.
+  const x = initialTarget.x + initialTarget.width / 2
+  const y = initialTarget.y + initialTarget.height * ratio
   await page.mouse.move(x, y, { steps: 12 })
   await check?.()
   await page.mouse.up()
@@ -80,6 +84,8 @@ test('arrasta da biblioteca para uma posição exata no canvas, com o indicador 
     await expect(page.locator('[data-drop-indicator="antes"]')).toBeVisible()
   })
   await expect(texts(page)).toHaveText(['Alfa', 'Escreva o texto aqui.', 'Beta', 'Gama', 'Delta'])
+  await expect(props(page).getByRole('heading', { name: 'Parágrafo' })).toBeVisible()
+  await expect(page.locator('[data-drop-indicator]')).toHaveCount(0)
 
   // Metade de baixo de "Gama": entra depois dele.
   await dragTo(page, paragraph, canvas(page).getByRole('heading', { name: 'Gama' }), 0.85, async () => {

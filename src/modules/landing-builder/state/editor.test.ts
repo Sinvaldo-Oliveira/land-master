@@ -11,6 +11,8 @@ import {
   placeBlock,
   removeBlock,
   setSeo,
+  updateBlockResponsive,
+  updateBlockStyle,
   updateBlockProps,
 } from './editor'
 
@@ -60,6 +62,21 @@ describe('updateBlockProps', () => {
   it('id desconhecido não muda nada', () => {
     const doc = sample()
     expect(updateBlockProps(doc, 'x', {})).toBe(doc)
+  })
+})
+
+describe('estilo e responsividade', () => {
+  it('atualiza estilo sem alterar props nem o documento original', () => {
+    const doc = sample()
+    const next = updateBlockStyle(doc, 'h1', { textSize: 'xl', paddingY: 24 })
+    expect(findBlock(next.blocks, 'h1')?.block.style).toEqual({ textSize: 'xl', paddingY: 24 })
+    expect(findBlock(doc.blocks, 'h1')?.block.style).toBeUndefined()
+  })
+
+  it('remove override vazio para o dispositivo voltar a herdar', () => {
+    const doc = updateBlockResponsive(sample(), 'h1', { mobile: { textAlign: 'center' }, hideOn: ['mobile'] })
+    const next = updateBlockResponsive(doc, 'h1', { mobile: { textAlign: undefined }, hideOn: [] })
+    expect(findBlock(next.blocks, 'h1')?.block.responsive).toBeUndefined()
   })
 })
 

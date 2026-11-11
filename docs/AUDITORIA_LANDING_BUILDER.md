@@ -107,3 +107,44 @@ O que falta no banco (detalhe em [BANCO_LANDING_BUILDER](BANCO_LANDING_BUILDER.m
 ## 8. Arquivos analisados
 
 `package.json`, `playwright.config.ts`, `vite.config.ts`, `public/.htaccess`, `src/app/router.tsx`, `src/admin/navigation.ts`, `src/admin/auth/*`, `src/admin/ui/*`, `src/lib/env.ts`, `src/lib/supabase.ts`, `src/renderer/*` (tipos, renderizador, tema, superfície, seções), `src/modules/home/*`, `src/modules/landing-builder/LandingPagesPage.tsx`, `src/modules/forms/FormsPage.tsx`, as 6 migrações em `supabase/migrations/`, e os documentos `ARQUITETURA_TECNICA`, `MODELO_BANCO_DADOS`, `DESIGN_SYSTEM`, `ESTRATEGIA_PUBLICACAO`, `PLANO_DESENVOLVIMENTO` e `REFERENCIAS_VISUAIS`.
+
+## 9. Reauditoria integral e Etapa 4 — 2026-11-11
+
+### Resultado técnico
+
+- Base antes da mudança: lint, tipos, 363 testes unitários, build e orçamento verdes; 124 E2E executados no backend simulado.
+- Etapa 4: documento v2 retrocompatível, estilos e responsividade por tokens estritos, nove blocos novos e identidade herdada da Home.
+- Segurança: nenhum `dangerouslySetInnerHTML`, `eval` ou classe livre no renderer; URLs continuam em listas/formatos validados; novo vídeo aceita faixa WebVTT.
+- Bundle após a Etapa 4: público inicial 114,4 kB gzip de 120 kB; CSS público 17,3 kB gzip; admin base 124,8 kB gzip de 150 kB.
+
+### Achados ainda abertos
+
+| Severidade | Achado | Situação / ação |
+|---|---|---|
+| Crítica | Token `sbp_` e chave secreta relatados no `.env`/captura antiga. | Revogar no Supabase e substituir localmente; não expor o valor em logs. |
+| Alta | Migrações e pgTAP não foram executados contra um banco de testes (sem Docker/projeto separado). | Validar antes da Etapa 7; o E2E atual usa backend simulado. |
+| Alta | `.env.example` e `.env.e2e` continuam excluídos no working tree. | Alterações do responsável foram preservadas; restaurar conscientemente antes de distribuir o projeto. |
+| Média | Bundle público tem somente 5,6 kB gzip de folga. | Manter `/lp/:slug` em chunk próprio e evitar novas dependências públicas. |
+| Média | Imagens de conteúdo sem dimensões intrínsecas podem causar CLS enquanto carregam. | Persistir largura/altura ou proporção da mídia na etapa da biblioteca e renderizar `width`/`height`. |
+| Baixa | Vitest informa custo alto ao criar jsdom por arquivo. | Avaliar `vmThreads` em manutenção futura, medindo isolamento e duração. |
+
+### Verificação final
+
+- `npm run verify`: lint, tipos, 383 testes unitários, build e orçamento de bundle aprovados.
+- Playwright: os 125 cenários E2E chegaram ao fim sem falha funcional.
+- Pendência do runner no Windows: após o último cenário, os processos `vite preview` por vezes não encerram; o comando precisa ser interrompido manualmente. Corrigir o teardown do `webServer` em manutenção futura.
+
+### Auditoria de interface
+
+- Ações principais usam elementos semânticos e alternativas de teclado; arraste mantém comandos e atalhos.
+- Estados assíncronos usam texto/`aria-live`; destruição usa confirmação ou desfazer.
+- A Etapa 4 expõe controles rotulados e valores enumerados; “Herdar” remove o override em vez de copiar o desktop.
+- Permanecem pontos antigos de `outline-none` em alvos programáticos (`main` com `tabIndex=-1`) e primitivas Radix, que possuem foco substituto via design system; revisar novamente quando o design system for ampliado.
+
+### Correção — faixa em branco na landing publicada (2026-11-11)
+
+- **Sintoma relatado:** em `/lp/:slug`, uma faixa branca de cerca de 224 px no topo, antes da primeira seção com conteúdo.
+- **Causa:** o renderizador público desenhava contêineres (Seção, Colunas, Coluna, Grade) mesmo sem nada visível dentro. Uma Seção vazia, ou só com imagem/vídeo ainda não enviados, virava uma faixa do tamanho do próprio espaçamento (112 px em cima e 112 px embaixo no computador). No editor ela aparecia com o aviso "Seção vazia", por isso a diferença só surgia no site.
+- **Correção:** no site público, contêiner sem filho visível não é desenhado; imagem e vídeo sem arquivo deixam de contar como conteúdo; contêiner cujos filhos estão todos ocultos em um dispositivo também se oculta nele. No editor nada muda, e o aviso agora diz que o bloco vazio não aparece no site.
+- **Testes:** unitários em `LandingRenderer.test.tsx` e E2E na rota pública em `tests/e2e/landing-editor-public.spec.ts`.
+- **De carona:** `src/public-site/LandingPage.tsx` chamava `setState` dentro de um efeito (o lint barrava o `verify`); o estado de carregamento agora é derivado do slug.

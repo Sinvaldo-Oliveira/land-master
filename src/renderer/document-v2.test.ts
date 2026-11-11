@@ -39,6 +39,7 @@ describe('createEmptyLanding', () => {
       schemaVersion: 2,
       seo: { title: 'Promoção de verão', description: '' },
       theme: horizonteTheme,
+      identity: { name: 'Sua Empresa', logoUrl: '', faviconUrl: '', whatsapp: '' },
       blocks: [],
     })
   })

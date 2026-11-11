@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { BLOCK_TYPES, canInsert, createEmptyLanding, isElementBlockType, type Block, type LandingDocument } from '@/renderer/document-v2'
+import { BLOCK_TYPES, canInsert, createEmptyLanding, isNestedBlockType, type Block, type LandingDocument } from '@/renderer/document-v2'
 import { horizonteTheme } from '@/renderer/templates/institucional'
 import { validateLandingDocument } from '../schema/document'
 import { blockDefinitions, blockLabel, blockSummary, createBlock, definitionOf, groupOrder } from './definitions'
 
 describe('definições de bloco', () => {
+  it('inclui todos os blocos previstos para a Etapa 4', () => {
+    expect(blockDefinitions.map((definition) => definition.type)).toEqual(expect.arrayContaining([
+      'columns', 'column', 'grid', 'list', 'badge', 'icon', 'video', 'whatsapp-button', 'benefit-list',
+    ]))
+  })
   it('todo tipo de bloco do documento tem definição, e não há definição sobrando', () => {
     expect(blockDefinitions.map((d) => d.type).sort()).toEqual([...BLOCK_TYPES].sort())
     expect(new Set(blockDefinitions.map((d) => d.type)).size).toBe(blockDefinitions.length)
@@ -23,7 +28,15 @@ describe('definições de bloco', () => {
   it.each(BLOCK_TYPES)('o conteúdo inicial de "%s" passa na validação completa', (type) => {
     let block = createBlock(type, (t) => `${t}-1`)
     // Elementos vivem dentro de uma seção.
-    if (isElementBlockType(type)) block = { ...createBlock('section', () => 'secao-1'), children: [block] }
+    if (isNestedBlockType(type)) {
+      if (type === 'column') {
+        block = { ...createBlock('section', () => 'secao-1'), children: [{ ...createBlock('columns', () => 'colunas-1'), children: [block] }] }
+      } else if (type === 'columns' || type === 'grid') {
+        block = { ...createBlock('section', () => 'secao-1'), children: [block] }
+      } else {
+        block = { ...createBlock('section', () => 'secao-1'), children: [block] }
+      }
+    }
     expect(canInsert(null, block.type)).toBe(true)
     const doc: LandingDocument = { ...createEmptyLanding('Teste', horizonteTheme), blocks: [block] }
     expect(validateLandingDocument(doc)).toEqual([])
@@ -40,6 +53,13 @@ describe('definições de bloco', () => {
     const a = createBlock('faq')
     const b = createBlock('faq')
     expect(a.props.items).not.toBe(b.props.items)
+  })
+
+  it('aplica a identidade da página a cabeçalho, rodapé e WhatsApp novos', () => {
+    const identity = { name: 'WebSic', logoUrl: 'https://cdn.test/logo.webp', faviconUrl: '', whatsapp: '5511999999999' }
+    expect(createBlock('site-header', undefined, identity).props).toMatchObject({ brand: { name: 'WebSic' }, logoUrl: identity.logoUrl })
+    expect(createBlock('site-footer', undefined, identity).props).toMatchObject({ brand: { name: 'WebSic' }, logoUrl: identity.logoUrl })
+    expect(createBlock('whatsapp-button', undefined, identity).props).toMatchObject({ phone: identity.whatsapp })
   })
 
   it('nome e resumo para as camadas', () => {

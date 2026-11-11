@@ -11,12 +11,13 @@ function page(loader: () => Promise<{ default: ComponentType }>): RouteObject['l
 
 export const routes: RouteObject[] = [
   // ---------------------------------------------------------------------------
-  // Área pública — bundle inicial. As landing pages (/lp/:slug) chegam na Etapa 7 do construtor.
+  // Área pública — a landing é carregada sob demanda e nunca traz o admin para o visitante.
   // ---------------------------------------------------------------------------
   {
     element: <PublicShell />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'lp/:slug', lazy: page(() => import('@/public-site/LandingPage')) },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

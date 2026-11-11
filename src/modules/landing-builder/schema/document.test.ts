@@ -16,6 +16,38 @@ describe('validateLandingDocument', () => {
     expect(validateLandingDocument(fromTemplate())).toEqual([])
   })
 
+  it('migra documento v2 antigo sem identidade, estilo ou responsividade', () => {
+    const legacy = { ...empty() } as Omit<LandingDocument, 'identity'> & { identity?: LandingDocument['identity'] }
+    delete legacy.identity
+    const migrated = migrateDocument(legacy)
+    expect(migrated?.identity).toEqual({ name: 'Sua Empresa', logoUrl: '', faviconUrl: '', whatsapp: '' })
+    expect(validateLandingDocument(migrated)).toEqual([])
+  })
+
+  it('aceita apenas tokens fechados de estilo e overrides responsivos', () => {
+    const heading: Block = { id: 'h1', type: 'heading', v: 1, props: { text: 'Título', level: 'h2' } }
+    const doc: LandingDocument = {
+      ...empty(),
+      blocks: [{ id: 's1', type: 'section', v: 1, props: { tone: 'light', width: 'normal', align: 'center' }, children: [heading] }],
+    }
+    heading.style = { textSize: 'xl', fontWeight: 'bold', textAlign: 'left', paddingY: 24, radius: 'lg', shadow: 'md' }
+    heading.responsive = { mobile: { textSize: 'md', textAlign: 'center', paddingY: 8 }, hideOn: ['tablet'] }
+    expect(validateLandingDocument(doc)).toEqual([])
+
+    heading.style = { className: 'fixed inset-0' } as never
+    expect(messages(doc)).not.toEqual([])
+  })
+
+  it('recusa valores CSS livres nos tokens de estilo', () => {
+    const heading: Block = { id: 'h1', type: 'heading', v: 1, props: { text: 'Título', level: 'h2' } }
+    const doc: LandingDocument = {
+      ...empty(),
+      blocks: [{ id: 's1', type: 'section', v: 1, props: { tone: 'light', width: 'normal', align: 'center' }, children: [heading] }],
+    }
+    heading.style = { paddingY: '999px', color: 'red' } as never
+    expect(messages(doc)).not.toEqual([])
+  })
+
   it('recusa documento v1, sem título de SEO ou com tema inválido', () => {
     expect(messages(institucionalTemplate)).not.toEqual([])
     expect(messages({ ...empty(), seo: { title: ' ', description: '' } })).toContain('Título da página (SEO): preencha este campo.')

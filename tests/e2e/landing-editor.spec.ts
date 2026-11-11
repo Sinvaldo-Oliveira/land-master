@@ -24,6 +24,16 @@ const theme = {
 }
 
 const emptyDoc = () => ({ schemaVersion: 2, seo: { title: 'Black Friday', description: '' }, theme, blocks: [] as unknown[] })
+const publishableDoc = () => ({
+  ...emptyDoc(),
+  seo: { title: 'Oferta Black Friday', description: 'Descontos por tempo limitado.' },
+  blocks: [
+    {
+      id: 'section-1', type: 'section', v: 1, props: { tone: 'light', width: 'normal', align: 'center' },
+      children: [{ id: 'heading-1', type: 'heading', v: 1, props: { text: 'Oferta Black Friday', level: 'h1' } }],
+    },
+  ],
+})
 
 async function open(page: Page, row: Partial<Row> = {}) {
   await signInAs(page, 'admin')
@@ -39,6 +49,19 @@ const props = (page: Page) => page.getByRole('complementary', { name: 'Proprieda
 const layers = (page: Page) => page.getByRole('navigation', { name: 'Camadas da página' })
 const saveButton = (page: Page) => page.getByRole('button', { name: 'Salvar rascunho' })
 const savedDoc = (backend: { rows: Row[] }) => backend.rows[0]?.draft_document as { blocks: { type: string; props: Record<string, unknown>; children?: { type: string; props: Record<string, unknown> }[] }[] }
+
+test('publica a landing e abre somente a versão publicada em /lp/:slug', async ({ page }) => {
+  const backend = await open(page, { draft_document: publishableDoc() })
+
+  await page.getByRole('button', { name: 'Publicar landing' }).click()
+  await expect(page.getByText('Landing publicada.')).toBeVisible()
+  await expect(page.getByText('Publicada', { exact: true })).toBeVisible()
+  expect(backend.rows[0]).toMatchObject({ status: 'published' })
+
+  await page.goto('/lp/black-friday')
+  await expect(page.getByRole('heading', { level: 1, name: 'Oferta Black Friday' })).toBeVisible()
+  await expect(page).toHaveTitle('Oferta Black Friday')
+})
 
 test('monta uma página com 5 blocos, edita os textos, salva, recarrega e continua de onde parou', async ({ page }) => {
   const backend = await open(page)
@@ -123,6 +146,30 @@ test('clicar no canvas seleciona o bloco mais interno e não segue os links da p
   await layers(page).getByRole('button', { name: 'Página' }).click()
   await expect(props(page).getByLabel('Título da página (SEO)')).toHaveValue('Black Friday')
   await expect(canvas(page).locator('[data-selected="true"]')).toHaveCount(0)
+})
+
+test('estilo e override mobile são independentes e podem voltar a herdar', async ({ page }) => {
+  await open(page)
+  await add(page, 'Título')
+  const panel = props(page)
+  await panel.getByRole('tab', { name: 'Estilo' }).click()
+  await panel.getByLabel('Padding vertical').selectOption('24')
+  await panel.getByLabel('Alinhamento').selectOption('right')
+
+  const heading = canvas(page).getByRole('heading', { name: 'Escreva o título aqui' })
+  await expect(heading).toHaveCSS('padding-top', '24px')
+  await expect(heading).toHaveCSS('text-align', 'right')
+
+  await panel.getByRole('tab', { name: 'Responsivo' }).click()
+  await panel.getByLabel('Padding vertical').selectOption('8')
+  await panel.getByLabel('Alinhamento').selectOption('center')
+  await page.getByRole('radio', { name: 'Celular' }).click()
+  await expect(heading).toHaveCSS('padding-top', '8px')
+  await expect(heading).toHaveCSS('text-align', 'center')
+
+  await panel.getByLabel('Padding vertical').selectOption('')
+  await expect(heading).toHaveCSS('padding-top', '24px')
+  await page.screenshot({ path: 'test-results/landing-editor-etapa4.png', fullPage: true })
 })
 
 test('move, duplica, insere acima e exclui (com desfazer)', async ({ page }) => {

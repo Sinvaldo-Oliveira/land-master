@@ -70,6 +70,7 @@ export function PreviewFrame({
     const onLoad = () => {
       const doc = iframe.contentDocument
       if (!doc) return
+      doc.documentElement.style.scrollBehavior = 'auto'
       stopMirror = mirrorStyles(doc)
       doc.addEventListener('click', (event) => {
         const anchor = (event.target as Element | null)?.closest?.('a')
@@ -95,13 +96,13 @@ export function PreviewFrame({
     // Nunca devolver o resultado de scrollTo: navegadores novos devolvem uma Promise,
     // e o React trataria esse valor como a função de limpeza do efeito (erro ao desmontar).
     if (focusSectionId === 'top') {
-      win.scrollTo({ top: 0, behavior: 'smooth' })
+      win.scrollTo({ top: 0, behavior: 'auto' })
     } else if (focusSectionId === 'bottom') {
-      win.scrollTo({ top: body.scrollHeight, behavior: 'smooth' })
+      win.scrollTo({ top: body.scrollHeight, behavior: 'auto' })
     } else {
       // scrollTo na janela do iframe (scrollIntoView rolaria também a página do painel).
       const target = body.querySelector(`[data-section-id="${CSS.escape(focusSectionId)}"]`)
-      if (target) win.scrollTo({ top: target.getBoundingClientRect().top + win.scrollY - 72, behavior: 'smooth' })
+      if (target) win.scrollTo({ top: target.getBoundingClientRect().top + win.scrollY - 72, behavior: 'auto' })
     }
   }, [body, focusSectionId, device])
 
