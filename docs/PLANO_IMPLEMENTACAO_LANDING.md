@@ -8,7 +8,7 @@
 | # | Pendência | Bloqueia | Quem resolve |
 |---|---|---|---|
 | P1 | Testes unitários não rodam (Vitest) e o `node_modules` está travado por processos MCP. | Etapa 1 | Você fecha os processos (ou reinicia o computador); eu rodo `npm ci` e a verificação completa. |
-| P2 | Decisões D-L2 a D-L5 da [auditoria §6](AUDITORIA_LANDING_BUILDER.md) (D-L1 e D-L6 já decididas). | Etapa 1 | Você. |
+| P2 | ~~Decisões D-L1 a D-L6 da [auditoria §6](AUDITORIA_LANDING_BUILDER.md).~~ **Resolvida em 2026-11-11:** as seis decididas. | — | — |
 | P3 | Restaurar `.env.example` e `.env.e2e`; revogar o token `sbp_` do `.env` e a chave secreta exposta. | — (higiene) | Você. |
 | P4 | Confirmar quais migrações estão aplicadas no banco remoto (CRM em especial). | Etapa 8 | Você roda uma consulta de leitura que eu preparo. |
 | P5 | Banco de testes (Docker ou segundo projeto Supabase) para validar RLS com pgTAP. | Etapa 7 | Decisão sua. |

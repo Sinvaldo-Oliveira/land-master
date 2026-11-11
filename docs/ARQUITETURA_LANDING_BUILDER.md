@@ -144,9 +144,10 @@ Meta: o bundle público inicial continua ≤ 120 kB gzip; a rota `/lp/:slug` som
 | ID | Decisão | Status |
 |---|---|---|
 | ADR-L1 | Landings reutilizam `pages`/`page_versions`; sem tabelas `landing_*` paralelas. | Proposta |
-| ADR-L2 | `PageDocument v2` em árvore para landings; Home segue em v1; seções atuais viram blocos. | Proposta |
+| ADR-L2 | `PageDocument v2` em árvore para landings; Home segue em v1; seções atuais viram blocos. | **Aceita** (2026-11-11) |
 | ADR-L3 | Canvas em iframe com o renderizador público em modo de edição. | Proposta |
 | ADR-L4 | Estilo por tokens e variáveis CSS; nenhuma classe vinda do banco. | Proposta |
-| ADR-L5 | `@dnd-kit` no admin (Etapa 3); sem Zustand na v1. | Proposta |
+| ADR-L5 | `@dnd-kit` no admin (Etapa 3); sem Zustand na v1. | **Aceita** (2026-11-11) |
 | ADR-L6 | Rota pública `/lp/:slug`. | **Aceita** (2026-11-11) |
-| ADR-L7 | Templates como dados no repositório, copiados ao criar a página. | Proposta |
+| ADR-L7 | Templates como dados no repositório, copiados ao criar a página. | **Aceita** (2026-11-11) |
+| ADR-L8 | Rota do painel continua em `/admin/paginas`. | **Aceita** (2026-11-11) |
