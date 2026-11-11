@@ -1,6 +1,6 @@
 # Estratégia de Publicação — Landing Pages
 
-> 2026-11-11 · Status: **proposta**. A decisão de fundo já está em [ESTRATEGIA_PUBLICACAO](ESTRATEGIA_PUBLICACAO.md) (ADR-001, modelo híbrido). Este documento aplica aquela decisão às landing pages e responde ao PRD §19, sem repetir a comparação completa.
+> 2026-11-11 · Status: **aceita** (rota `/lp/:slug` e camada PHP na etapa final, decididas pelo responsável). A decisão de fundo já está em [ESTRATEGIA_PUBLICACAO](ESTRATEGIA_PUBLICACAO.md) (ADR-001, modelo híbrido). Este documento aplica aquela decisão às landing pages e responde ao PRD §19, sem repetir a comparação completa.
 
 ## 1. Decisão
 
@@ -41,7 +41,7 @@ Visitante ──/lp/slug──▶ RPC get_public_page(slug)          [anon]
 
 | Item | Definição |
 |---|---|
-| Endereço | `/lp/:slug` (aguardando a decisão D-L1) |
+| Endereço | `/lp/:slug` (decidido em 2026-11-11) |
 | Recarregar a página / abrir direto | Resolvido pelo `public/.htaccess` (fallback de SPA), criado em 2026-11-11 |
 | Código | chunk próprio, fora do bundle inicial da Home |
 | Página inexistente ou fora do ar | página 404 do site; status HTTP 404 real só com a camada PHP |

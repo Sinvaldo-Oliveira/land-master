@@ -83,12 +83,12 @@ O que falta no banco (detalhe em [BANCO_LANDING_BUILDER](BANCO_LANDING_BUILDER.m
 
 | # | Decisão | Recomendação |
 |---|---|---|
-| D-L1 | Endereço público: `/lp/:slug` (PRD) ou `/:slug` (plano antigo). | **`/lp/:slug`**: não colide com rotas futuras, dispensa lista de slugs reservados e isola o chunk da landing. |
+| D-L1 | Endereço público: `/lp/:slug` (PRD) ou `/:slug` (plano antigo). | **Decidido em 2026-11-11: `/lp/:slug`.** Não colide com rotas futuras, dispensa lista de slugs reservados e isola o chunk da landing. |
 | D-L2 | Rota do admin: manter `/admin/paginas` (já existe, em português como as outras) ou trocar para `/admin/landing-pages`. | **Manter `/admin/paginas`.** |
 | D-L3 | Formato do documento: árvore de blocos (`PageDocument v2`) só para landings, mantendo a Home em v1. | **Sim**, com as seções atuais reaproveitadas como blocos. |
 | D-L4 | Instalar `@dnd-kit` na Etapa 3. | **Sim**, só no bundle do admin. Zustand: não por enquanto. |
 | D-L5 | Templates como código do repositório (versionados com o renderizador) em vez de tabela no banco. | **Código**, na v1. |
-| D-L6 | Camada PHP de SEO (ADR-001) continua para a etapa final. | **Sim.** |
+| D-L6 | Camada PHP de SEO (ADR-001) continua para a etapa final. | **Decidido em 2026-11-11: sim.** |
 
 ## 7. Riscos e pendências de ambiente
 

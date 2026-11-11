@@ -148,5 +148,5 @@ Meta: o bundle público inicial continua ≤ 120 kB gzip; a rota `/lp/:slug` som
 | ADR-L3 | Canvas em iframe com o renderizador público em modo de edição. | Proposta |
 | ADR-L4 | Estilo por tokens e variáveis CSS; nenhuma classe vinda do banco. | Proposta |
 | ADR-L5 | `@dnd-kit` no admin (Etapa 3); sem Zustand na v1. | Proposta |
-| ADR-L6 | Rota pública `/lp/:slug`. | Aguardando D-L1 |
+| ADR-L6 | Rota pública `/lp/:slug`. | **Aceita** (2026-11-11) |
 | ADR-L7 | Templates como dados no repositório, copiados ao criar a página. | Proposta |
