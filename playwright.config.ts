@@ -50,7 +50,8 @@ export default defineConfig({
   // (no Windows uma variável vazia é removida em vez de sobrescrever o .env).
   webServer: [
     {
-      command: `npx vite build && npx vite preview --port ${PUBLIC_PORT} --strictPort`,
+      // Pasta própria: este build usa placeholders e NUNCA pode sobrescrever o dist de produção.
+      command: `npx vite build --outDir dist-public-test && npx vite preview --outDir dist-public-test --port ${PUBLIC_PORT} --strictPort`,
       url: `http://localhost:${PUBLIC_PORT}`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
