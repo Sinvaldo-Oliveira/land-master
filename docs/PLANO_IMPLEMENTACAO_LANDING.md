@@ -1,6 +1,6 @@
 # Plano de Implementação — Landing Page Builder
 
-> 2026-11-11 · Status: **Etapa 1 implementada em 2026-11-11** (autorizada pelo responsável); falta você rodar o script do banco. Etapa 2 aguarda autorização. Detalha a Fase 5 (e parte das Fases 6 e 8) do [PLANO_DESENVOLVIMENTO](PLANO_DESENVOLVIMENTO.md).
+> 2026-11-11 · Status: **Etapa 1 implementada em 2026-11-11** (autorizada pelo responsável); falta você rodar o script do banco. **Etapa 2 implementada em 2026-11-11.** Etapa 3 aguarda autorização. Detalha a Fase 5 (e parte das Fases 6 e 8) do [PLANO_DESENVOLVIMENTO](PLANO_DESENVOLVIMENTO.md).
 > Regra: uma etapa por vez, cada uma com autorização explícita. Nenhuma etapa é dada como pronta sem os testes indicados.
 
 ## Antes de começar (pendências de ambiente)
@@ -27,7 +27,12 @@ Cada etapa termina com: typecheck, lint, testes unitários, E2E, build, orçamen
 - Tela **Nova landing page**: começar do zero (os modelos entram na Etapa 5).
 - **Pronto quando:** crio, renomeio, duplico, arquivo e excluo uma página; slug repetido é recusado com mensagem clara; a Home e o CRM seguem intactos (regressão E2E).
 
-### Etapa 2 — Editor visual básico
+### Etapa 2 — Editor visual básico ✅ (2026-11-11)
+
+> Entregue: rota `/admin/paginas/:id` com biblioteca de blocos, camadas, canvas em iframe e painel de propriedades; blocos Seção, Título, Parágrafo, Imagem, Botão, Espaçador e Divisor, mais as 13 seções prontas; inserir por clique (no fim, depois do selecionado, acima ou abaixo); mover, duplicar e excluir pelo painel; salvar manual (botão e Ctrl+S) com detecção de conflito; Computador, Tablet e Celular.
+> Verificado: lint, typecheck, 341 testes unitários, 113 testes E2E, build e orçamento do bundle. O critério "5 blocos, editar, salvar, recarregar e continuar" está coberto por teste E2E com backend simulado; **falta o teste no banco real**, que depende do script da Etapa 1.
+> Diferenças em relação ao plano: mover, duplicar e excluir já entraram aqui (sem eles o editor não é usável); a marcação de seleção no canvas é só o contorno, e as ações ficam no painel de propriedades (a barra flutuante sobre o bloco fica para a Etapa 3, junto com o arraste). Ainda **não há desfazer**: por isso excluir pede confirmação.
+> Correção de carona: o `PreviewFrame` devolvia o resultado de `scrollTo` dentro de um efeito; em navegadores novos isso é uma Promise e derrubava a tela ao trocar de seleção (afetava também o editor da Home).
 
 - Layout em 5 regiões; canvas em iframe com o renderizador em modo de edição.
 - Seleção de bloco no canvas e na árvore de camadas; painel de propriedades (aba Conteúdo).

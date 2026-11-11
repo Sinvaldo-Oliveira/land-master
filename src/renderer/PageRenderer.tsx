@@ -59,7 +59,8 @@ export function PageRenderer({ document: doc, preview = false }: { document: Pag
   )
 }
 
-function SectionView({ section, brandName }: { section: Section; brandName: string }) {
+/** Desenha uma seção completa. Também usado pelo LandingRenderer (documento v2). */
+export function SectionView({ section, brandName }: { section: Section; brandName: string }) {
   switch (section.type) {
     case 'hero':
       return <Hero section={section} />

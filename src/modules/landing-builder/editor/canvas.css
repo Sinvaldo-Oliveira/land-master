@@ -1,0 +1,44 @@
+/*
+ * Marcação de seleção no canvas do editor. Este arquivo é do painel: o PreviewFrame espelha as folhas
+ * de estilo para dentro do iframe, então as regras valem lá. O site público nunca carrega isto.
+ * Cores fixas (não usam o tema da página) para a seleção aparecer sobre qualquer fundo.
+ */
+[data-block-id] {
+  position: relative;
+  cursor: pointer;
+}
+
+/* Contorno só no bloco mais interno sob o cursor. */
+[data-block-id]:hover:not(:has([data-block-id]:hover)) {
+  outline: 1px dashed #2563eb;
+  outline-offset: 2px;
+}
+
+[data-block-id][data-selected='true'] {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Blocos com conteúdo posicionado (seções) cobrem o outline: a moldura vai por cima, num pseudo-elemento. */
+[data-block-id][data-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  border: 2px solid #2563eb;
+  pointer-events: none;
+}
+
+[data-block-id][data-hidden='true'] {
+  opacity: 0.45;
+}
+
+.lb-placeholder {
+  width: 100%;
+  padding: 2rem 1rem;
+  border: 1.5px dashed color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  text-align: center;
+  opacity: 0.75;
+}

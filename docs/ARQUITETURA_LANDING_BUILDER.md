@@ -77,7 +77,7 @@ Cada tipo tem duas metades, ligadas pelo mesmo `type`:
 | Renderização | `src/renderer/blocks/` | Componente React, estilos, comportamento público. |
 | Edição | `src/modules/landing-builder/blocks/` | Esquema Zod das `props`, valores padrão, campos do painel (o padrão `FieldDef` que já existe), regras de filhos (`accepts`, `maxChildren`), categoria, nome e miniatura. |
 
-Regras de estrutura ficam em dados, e uma única função `canInsert(parent, child, index)` decide tudo: arrastar, colar, duplicar e a árvore de camadas usam a mesma regra.
+Regras de estrutura ficam em dados, e uma única função `canInsert(parent, child)` (em `src/renderer/document-v2.ts`, usada pelo renderizador, pela validação e pelo editor) decide tudo: arrastar, colar, duplicar e a árvore de camadas usam a mesma regra.
 
 ## 5. Estilo sem classes dinâmicas
 
@@ -104,6 +104,7 @@ Overrides por dispositivo usam a mesma tabela, aplicados em cascata do maior par
 └────────────┴──────────────────────────────────────┴─────────────────────┘
 ```
 
+- **Modo de edição (Etapa 2):** o `LandingRenderer` recebe ganchos opcionais (`edit.attrs` e `edit.placeholder`). O painel usa `attrs` para marcar cada bloco (`data-block-id`, seleção, clique) no próprio elemento do bloco, sem embrulhar os elementos, então o HTML do canvas é o do site. O site público não passa os ganchos e não carrega nada do editor.
 - **Canvas em iframe** (o `PreviewFrame` atual, evoluído): só o iframe dá largura de viewport real, então os breakpoints do site funcionam de verdade em Desktop (1440), Tablet (768) e Mobile (375). O conteúdo é o `LandingRenderer` em modo de edição: links e formulários não disparam, e cada bloco ganha contorno de seleção e barra de ações.
 - **Estado:** um `useReducer` com o documento, a seleção e duas pilhas de histórico (desfazer/refazer, limite de 100 passos, agrupando digitação contínua). Todas as transições são funções puras em `state/`, testadas sem React.
 - **Autosave:** 2 s após a última mudança, com os estados "Salvando", "Salvo", "Alterações não salvas" e "Erro ao salvar". Usa o `p_expected_updated_at` que já existe para não sobrescrever outra sessão.

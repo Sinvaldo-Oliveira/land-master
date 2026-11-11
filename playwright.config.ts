@@ -50,6 +50,12 @@ export default defineConfig({
       testMatch: 'landing-pages.spec.ts',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: `http://localhost:${SHELL_PORT}` },
     },
+    // Editor visual de landing pages (só em tela grande: o editor exige 1024 px).
+    {
+      name: 'landing-editor',
+      testMatch: 'landing-editor.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: `http://localhost:${SHELL_PORT}` },
+    },
     {
       name: 'landing-pages-mobile',
       testMatch: 'landing-pages.spec.ts',

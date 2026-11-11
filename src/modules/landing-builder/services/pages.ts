@@ -4,7 +4,7 @@ import { fetchHomePage } from '@/modules/home/api'
 import { createEmptyLanding, type LandingDocument } from '@/renderer/document-v2'
 import { horizonteTheme } from '@/renderer/templates/institucional'
 import type { SiteTheme } from '@/renderer/types'
-import type { Json, LandingPageSummary } from '@/types/database'
+import type { Json, LandingPageSummary, PageStatus } from '@/types/database'
 import { validateLandingDocument } from '../schema/document'
 import type { PageMetaValues } from '../schema/page-meta'
 
@@ -93,4 +93,52 @@ const actionFallback: Record<PageAction, string> = {
 export async function runPageAction(action: PageAction, pageId: string): Promise<void> {
   const { error } = await requireSupabase().rpc(actionRpc[action], { p_page_id: pageId })
   if (error) throw new Error(message(error, actionFallback[action]))
+}
+
+// ---------------------------------------------------------------------------
+// Editor: carregar e salvar o rascunho de uma página
+// ---------------------------------------------------------------------------
+
+/** O que o editor precisa da página. `document` chega como veio do banco (ainda não validado). */
+export type LandingPageDraft = {
+  id: string
+  title: string
+  slug: string
+  status: PageStatus
+  draft_document: unknown
+  draft_updated_at: string
+}
+
+const draftColumns = 'id, title, slug, status, draft_document, draft_updated_at'
+
+function asDraft(row: { id: string; title: string; slug: string | null; status: PageStatus; draft_document: unknown; draft_updated_at: string }): LandingPageDraft {
+  return { ...row, slug: row.slug ?? '' }
+}
+
+/** Página pelo id, ou null se não existir (ou não for uma landing page). */
+export async function fetchLandingPage(pageId: string): Promise<LandingPageDraft | null> {
+  const { data, error } = await requireSupabase()
+    .from('pages')
+    .select(draftColumns)
+    .eq('id', pageId)
+    .eq('kind', 'landing')
+    .maybeSingle()
+  // 22P02: o id da URL não é um uuid — para quem usa, é só "página não encontrada".
+  if (error?.code === '22P02') return null
+  if (error) throw new Error(message(error, 'Não foi possível carregar a página.'))
+  return data ? asDraft(data) : null
+}
+
+/**
+ * Salva o rascunho. `expectedUpdatedAt` é a data do rascunho que o editor carregou:
+ * se outra sessão salvou depois, o banco recusa em vez de sobrescrever.
+ */
+export async function saveLandingDraft(pageId: string, document: LandingDocument, expectedUpdatedAt: string): Promise<LandingPageDraft> {
+  const { data, error } = await requireSupabase().rpc('save_page_draft', {
+    p_page_id: pageId,
+    p_document: document as unknown as Json,
+    p_expected_updated_at: expectedUpdatedAt,
+  })
+  if (error) throw new Error(message(error, 'Não foi possível salvar o rascunho.'))
+  return asDraft(data)
 }

@@ -71,6 +71,75 @@ describe('validateLandingDocument', () => {
   })
 })
 
+describe('blocos primitivos', () => {
+  const section = (...children: unknown[]) => ({ id: 's1', type: 'section', v: 1, props: { tone: 'light', width: 'normal', align: 'center' }, children })
+  const el = (type: string, props: Record<string, unknown>, id = type) => ({ id, type, v: 1, props })
+  const withBlocks = (...blocks: unknown[]) => ({ ...empty(), blocks })
+
+  it('aceita uma seção com todos os elementos', () => {
+    const doc = withBlocks(
+      section(
+        el('heading', { text: 'Título', level: 'h1' }),
+        el('paragraph', { text: 'Texto', size: 'md' }),
+        el('image', { url: 'https://exemplo.test/a.webp', alt: 'Foto' }),
+        el('image', { url: '', alt: '' }, 'image-vazia'),
+        el('button', { link: { label: 'Comprar', href: '#oferta' }, variant: 'secondary' }),
+        el('spacer', { size: 'xl' }),
+        el('divider', {}),
+      ),
+    )
+    expect(validateLandingDocument(doc)).toEqual([])
+  })
+
+  it('aceita fundo e cores de texto personalizados na seção', () => {
+    const custom = {
+      id: 's1', type: 'section', v: 1,
+      props: {
+        tone: 'dark', width: 'wide', align: 'left', anchor: 'oferta',
+        background: { mode: 'gradient', colors: ['#112233', '#445566'], direction: 'to-right' },
+        text: { foreground: '#ffffff', muted: '#cccccc', primary: '#ffcc00', accent: '#00ccff' },
+      },
+    }
+    expect(validateLandingDocument(withBlocks(custom))).toEqual([])
+  })
+
+  it.each([
+    ['título vazio', el('heading', { text: '  ', level: 'h2' }), 'Título: preencha o texto.'],
+    ['nível de título fora da lista', el('heading', { text: 'X', level: 'h7' }), null],
+    ['parágrafo vazio', el('paragraph', { text: '', size: 'md' }), 'Parágrafo: preencha o texto.'],
+    ['imagem http', el('image', { url: 'http://exemplo.test/a.png', alt: '' }), 'Imagem: use um endereço que comece com https://.'],
+    ['imagem javascript:', el('image', { url: 'javascript:alert(1)', alt: '' }), 'Imagem: use um endereço que comece com https://.'],
+    ['botão sem texto', el('button', { link: { label: '', href: '#' }, variant: 'primary' }), 'Botão: preencha o texto.'],
+    ['botão com link perigoso', el('button', { link: { label: 'Ir', href: 'javascript:alert(1)' }, variant: 'primary' }), 'Link inválido. Use #secao, /pagina, https://, mailto: ou tel:.'],
+    ['espaçador com tamanho livre', el('spacer', { size: '300px' }), null],
+    ['chave desconhecida (classe CSS vinda do documento)', el('heading', { text: 'X', level: 'h2', className: 'fixed inset-0' }), null],
+    ['HTML livre no divisor', el('divider', { html: '<script>' }), null],
+  ])('recusa %s', (_label, block, expected) => {
+    const issues = validateLandingDocument(withBlocks(section(block)))
+    expect(issues.length).toBeGreaterThan(0)
+    expect(issues.every((issue) => issue.blockId === block.id)).toBe(true)
+    if (expected) expect(issues.map((issue) => issue.message)).toContain(expected)
+  })
+
+  it('recusa âncora e cor inválidas na seção', () => {
+    const bad = { id: 's1', type: 'section', v: 1, props: { tone: 'light', width: 'normal', align: 'center', anchor: 'Com Espaço', background: { mode: 'solid', colors: ['red'] } } }
+    const found = messages(withBlocks(bad))
+    expect(found).toContain('Âncora: use letras minúsculas, números e hífen.')
+    expect(found).toContain('Use uma cor no formato #RRGGBB.')
+  })
+
+  it('recusa elemento solto na raiz e seção dentro de seção', () => {
+    expect(messages(withBlocks(el('heading', { text: 'X', level: 'h2' })))).toEqual(['Este bloco precisa ficar dentro de uma seção.'])
+    const nested = section({ id: 's2', type: 'section', v: 1, props: { tone: 'light', width: 'normal', align: 'center' } })
+    expect(messages(withBlocks(nested))).toEqual(['Este bloco não pode ficar dentro do bloco atual.'])
+  })
+
+  it('recusa seção completa dentro de uma seção contêiner', () => {
+    const faq = fromTemplate().blocks.find((b) => b.type === 'faq') as Block
+    expect(messages(withBlocks(section(faq)))).toContain('Este bloco não pode ficar dentro do bloco atual.')
+  })
+})
+
 describe('parseLandingDocument', () => {
   it('migra um documento v1 e o valida', () => {
     const result = parseLandingDocument(institucionalTemplate)

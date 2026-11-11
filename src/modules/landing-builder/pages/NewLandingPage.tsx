@@ -20,10 +20,10 @@ export default function NewLandingPage() {
 
   const create = useMutation({
     mutationFn: createBlankLandingPage,
-    onSuccess: async () => {
+    onSuccess: async (page) => {
       toast.success('Página criada como rascunho.')
       await queryClient.invalidateQueries({ queryKey: LANDING_PAGES_KEY })
-      void navigate('/admin/paginas')
+      void navigate(`/admin/paginas/${page.id}`)
     },
     onError: (error) => {
       // Endereço repetido é o erro mais comum: mostra no próprio campo, além do aviso.

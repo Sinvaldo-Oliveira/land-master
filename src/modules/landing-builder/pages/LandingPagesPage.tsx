@@ -7,6 +7,7 @@ import {
   EyeOff,
   FileStack,
   LayoutGrid,
+  LayoutTemplate,
   List,
   Pencil,
   Plus,
@@ -207,7 +208,11 @@ export default function LandingPagesPage() {
                 <Card className="flex h-full flex-col p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h2 className="font-admin-display text-admin-lg font-semibold break-words text-admin-ink">{page.title}</h2>
+                      <h2 className="font-admin-display text-admin-lg font-semibold break-words text-admin-ink">
+                        <Link to={`/admin/paginas/${page.id}`} className="hover:text-admin-accent-hover">
+                          {page.title}
+                        </Link>
+                      </h2>
                       <p className="mt-0.5 truncate font-admin-mono text-admin-sm text-admin-ink-2">
                         {PUBLIC_PREFIX}
                         {page.slug}
@@ -218,7 +223,13 @@ export default function LandingPagesPage() {
                   <div className="mt-4 flex flex-wrap gap-1.5">
                     <StatusBadges page={page} />
                   </div>
-                  <p className="mt-auto pt-4 text-admin-xs text-admin-ink-3">Editada em {formatDateTime(page.draft_updated_at)}</p>
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
+                    <p className="text-admin-xs text-admin-ink-3">Editada em {formatDateTime(page.draft_updated_at)}</p>
+                    <Link to={`/admin/paginas/${page.id}`} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+                      <Pencil aria-hidden="true" />
+                      Editar
+                    </Link>
+                  </div>
                 </Card>
               </li>
             ))}
@@ -240,7 +251,11 @@ export default function LandingPagesPage() {
                 <tbody>
                   {visible.map((page) => (
                     <tr key={page.id} className="border-b border-admin-rule last:border-0">
-                      <th scope="row" className="px-4 py-3 font-medium text-admin-ink">{page.title}</th>
+                      <th scope="row" className="px-4 py-3 font-medium text-admin-ink">
+                        <Link to={`/admin/paginas/${page.id}`} className="hover:text-admin-accent-hover">
+                          {page.title}
+                        </Link>
+                      </th>
                       <td className="px-4 py-3 font-admin-mono text-admin-sm text-admin-ink-2">
                         {PUBLIC_PREFIX}
                         {page.slug}
@@ -262,12 +277,6 @@ export default function LandingPagesPage() {
           </Card>
         )}
       </div>
-
-      {pages && pages.length > 0 ? (
-        <p className="mt-4 text-admin-sm text-admin-ink-3">
-          O editor visual das páginas chega na próxima etapa. Por enquanto você cria, organiza e nomeia as páginas.
-        </p>
-      ) : null}
 
       {pending?.action === 'edit' ? <EditMetaDialog page={pending.page} onClose={() => setPending(null)} /> : null}
       {pending?.action === 'duplicate' ? <DuplicateDialog page={pending.page} onClose={() => setPending(null)} /> : null}
@@ -303,6 +312,12 @@ function PageMenu({ page, onAction, onRestore }: PageMenuProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem asChild>
+          <Link to={`/admin/paginas/${page.id}`}>
+            <LayoutTemplate aria-hidden="true" />
+            Editar página
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onAction('edit')}>
           <Pencil aria-hidden="true" />
           Renomear e endereço

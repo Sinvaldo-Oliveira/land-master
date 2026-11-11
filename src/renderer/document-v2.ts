@@ -1,4 +1,4 @@
-import type { PageDocument, Section, SiteTheme } from './types'
+import type { LinkItem, PageDocument, Section, SectionBackground, SectionText, SectionTone, SiteTheme } from './types'
 
 /**
  * LandingDocument (PageDocument v2) — formato das landing pages: uma ÁRVORE de blocos.
@@ -12,10 +12,7 @@ import type { PageDocument, Section, SiteTheme } from './types'
 export const MAX_BLOCKS = 200
 export const MAX_DEPTH = 4
 
-/**
- * Seções completas da v1 reaproveitadas como blocos-folha do nível raiz.
- * Os blocos primitivos (título, imagem, colunas…) entram na lista a partir da Etapa 2.
- */
+/** Seções completas da v1 reaproveitadas como blocos-folha do nível raiz. */
 export const SECTION_BLOCK_TYPES = [
   'site-header',
   'hero',
@@ -32,8 +29,33 @@ export const SECTION_BLOCK_TYPES = [
   'site-footer',
 ] as const satisfies readonly Section['type'][]
 
+/** Contêiner do nível raiz: uma faixa da página que recebe elementos. */
+export const CONTAINER_BLOCK_TYPES = ['section'] as const
+
+/** Elementos simples, sempre dentro de uma seção. Colunas e grade entram na Etapa 4. */
+export const ELEMENT_BLOCK_TYPES = ['heading', 'paragraph', 'image', 'button', 'spacer', 'divider'] as const
+
 export type SectionBlockType = (typeof SECTION_BLOCK_TYPES)[number]
-export type BlockType = SectionBlockType
+export type ContainerBlockType = (typeof CONTAINER_BLOCK_TYPES)[number]
+export type ElementBlockType = (typeof ELEMENT_BLOCK_TYPES)[number]
+export type BlockType = SectionBlockType | ContainerBlockType | ElementBlockType
+
+export const BLOCK_TYPES: readonly BlockType[] = [...SECTION_BLOCK_TYPES, ...CONTAINER_BLOCK_TYPES, ...ELEMENT_BLOCK_TYPES]
+
+/** Conteúdo dos blocos primitivos (as seções completas usam os tipos da v1). */
+export type SectionBlockProps = {
+  tone: SectionTone
+  width: 'narrow' | 'normal' | 'wide'
+  align: 'left' | 'center'
+  anchor?: string
+  background?: SectionBackground
+  text?: SectionText
+}
+export type HeadingProps = { text: string; level: 'h1' | 'h2' | 'h3' }
+export type ParagraphProps = { text: string; size: 'md' | 'lg' }
+export type ImageProps = { url: string; alt: string }
+export type ButtonProps = { link: LinkItem; variant: 'primary' | 'secondary' }
+export type SpacerProps = { size: 'sm' | 'md' | 'lg' | 'xl' }
 
 export type Block = {
   /** Estável e único no documento. */
@@ -43,7 +65,7 @@ export type Block = {
   v: number
   /** Conteúdo, validado pelo esquema do tipo. */
   props: Record<string, unknown>
-  /** Só em contêineres (nenhum tipo atual aceita filhos). */
+  /** Só em contêineres (ver canInsert). */
   children?: Block[]
 }
 
@@ -62,6 +84,29 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isSectionBlockType(type: unknown): type is SectionBlockType {
   return typeof type === 'string' && (SECTION_BLOCK_TYPES as readonly string[]).includes(type)
+}
+
+export function isBlockType(type: unknown): type is BlockType {
+  return typeof type === 'string' && (BLOCK_TYPES as readonly string[]).includes(type)
+}
+
+export function isElementBlockType(type: unknown): type is ElementBlockType {
+  return typeof type === 'string' && (ELEMENT_BLOCK_TYPES as readonly string[]).includes(type)
+}
+
+/** Tipos que vivem no nível raiz da página: seções completas e a seção contêiner. */
+export function isRootBlockType(type: unknown): boolean {
+  return isSectionBlockType(type) || type === 'section'
+}
+
+/**
+ * Regra ÚNICA de estrutura (parent = null é o nível raiz). Inserir, colar, duplicar,
+ * arrastar e a validação usam esta função; nenhuma tela decide estrutura por conta própria.
+ */
+export function canInsert(parent: BlockType | null, child: BlockType): boolean {
+  if (parent === null) return isRootBlockType(child)
+  if (parent === 'section') return isElementBlockType(child)
+  return false
 }
 
 /** Total de blocos da árvore (todos os níveis). */

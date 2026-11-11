@@ -75,7 +75,7 @@ export const iconOptions: { value: IconName; label: string }[] = [
   { value: 'sparkles', label: 'Brilho' },
 ]
 
-const toneField: FieldDef = {
+export const toneField: FieldDef = {
   kind: 'select',
   key: 'tone',
   label: 'Fundo da seção',
@@ -85,13 +85,13 @@ const toneField: FieldDef = {
     { value: 'dark', label: 'Escuro' },
   ],
 }
-const backgroundField: FieldDef = {
+export const backgroundField: FieldDef = {
   kind: 'background',
   key: 'background',
   label: 'Cor de fundo da seção',
   hint: 'Tema usa o fundo escolhido acima. Cor sólida e degradê substituem esse fundo só nesta seção; a cor do texto, dos cartões e das bordas é ajustada automaticamente.',
 }
-const textColorsField: FieldDef = {
+export const textColorsField: FieldDef = {
   kind: 'text-colors',
   key: 'text',
   label: 'Cor do texto da seção',

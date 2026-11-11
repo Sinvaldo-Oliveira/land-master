@@ -83,11 +83,17 @@ export function PreviewFrame({
     if (!body || !focusSectionId) return
     const win = body.ownerDocument.defaultView
     if (!win) return
-    if (focusSectionId === 'top') return win.scrollTo({ top: 0, behavior: 'smooth' })
-    if (focusSectionId === 'bottom') return win.scrollTo({ top: body.scrollHeight, behavior: 'smooth' })
-    // scrollTo na janela do iframe (scrollIntoView rolaria também a página do painel).
-    const target = body.querySelector(`[data-section-id="${CSS.escape(focusSectionId)}"]`)
-    if (target) win.scrollTo({ top: target.getBoundingClientRect().top + win.scrollY - 72, behavior: 'smooth' })
+    // Nunca devolver o resultado de scrollTo: navegadores novos devolvem uma Promise,
+    // e o React trataria esse valor como a função de limpeza do efeito (erro ao desmontar).
+    if (focusSectionId === 'top') {
+      win.scrollTo({ top: 0, behavior: 'smooth' })
+    } else if (focusSectionId === 'bottom') {
+      win.scrollTo({ top: body.scrollHeight, behavior: 'smooth' })
+    } else {
+      // scrollTo na janela do iframe (scrollIntoView rolaria também a página do painel).
+      const target = body.querySelector(`[data-section-id="${CSS.escape(focusSectionId)}"]`)
+      if (target) win.scrollTo({ top: target.getBoundingClientRect().top + win.scrollY - 72, behavior: 'smooth' })
+    }
   }, [body, focusSectionId, device])
 
   const scale = box.width > 0 ? Math.min(1, box.width / width) : 1

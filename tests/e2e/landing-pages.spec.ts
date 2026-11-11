@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { fakeLandingBackend, type Row } from './fake-landing-backend'
 import { signInAs, type FakeRole } from './fake-supabase'
 
 /*
@@ -7,112 +8,6 @@ import { signInAs, type FakeRole } from './fake-supabase'
  * a tela precisa respeitar (só admin, endereço único, confirmação para trocar endereço no ar).
  * A segurança real (RLS e permissões) é coberta pelo pgTAP.
  */
-
-type Row = {
-  id: string
-  title: string
-  slug: string
-  status: 'draft' | 'published' | 'unpublished' | 'archived'
-  draft_document: unknown
-  draft_updated_at: string
-  published_at: string | null
-  archived_at: string | null
-  created_at: string
-}
-
-type Backend = { rows: Row[]; calls: { name: string; body: Record<string, unknown> }[] }
-
-const RPCS = 'list_landing_pages|create_landing_page|duplicate_page|update_page_meta|unpublish_page|archive_page|restore_page|delete_page'
-
-async function fakeLandingBackend(page: Page, role: FakeRole, seed: Partial<Row>[] = []): Promise<Backend> {
-  let clock = Date.parse('2026-11-01T12:00:00Z')
-  const tick = () => new Date((clock += 60_000)).toISOString()
-  const backend: Backend = { rows: [], calls: [] }
-  for (const [index, partial] of seed.entries()) {
-    const now = tick()
-    backend.rows.push({
-      id: `seed-${index + 1}`, title: `Página ${index + 1}`, slug: `pagina-${index + 1}`, status: 'draft',
-      draft_document: { schemaVersion: 2, blocks: [] }, draft_updated_at: now, published_at: null, archived_at: null, created_at: now,
-      ...partial,
-    })
-  }
-
-  const json = (body: unknown, status = 200) => ({ status, contentType: 'application/json', body: JSON.stringify(body) })
-  const fail = (code: string, message: string) => json({ code, message }, 400)
-  const taken = (slug: unknown, ignoreId?: string) => backend.rows.some((row) => row.slug === slug && row.id !== ignoreId)
-  const duplicateSlug = (slug: unknown) => fail('P0001', `Já existe uma página com o endereço /lp/${String(slug)}. Escolha outro.`)
-
-  await page.route(new RegExp(`https://e2etest\\.supabase\\.co/rest/v1/(pages|rpc/(${RPCS}))`), async (route) => {
-    const request = route.request()
-    const path = new URL(request.url()).pathname
-    const body = (request.postDataJSON() ?? {}) as Record<string, unknown>
-
-    // Home ainda não criada: a página nova usa o tema padrão.
-    if (path === '/rest/v1/pages') return route.fulfill(json([]))
-
-    const name = path.split('/').pop() ?? ''
-    backend.calls.push({ name, body })
-    if (role !== 'admin') return route.fulfill(json({ code: '42501', message: 'Apenas administradores.' }, 403))
-
-    const row = backend.rows.find((item) => item.id === body.p_page_id)
-    const missing = () => route.fulfill(fail('P0002', 'Página não encontrada.'))
-
-    switch (name) {
-      case 'list_landing_pages':
-        return route.fulfill(
-          json(
-            backend.rows.map(({ draft_document: _document, ...rest }) => ({
-              ...rest,
-              has_unpublished_changes: rest.status === 'published' && rest.published_at !== null && rest.draft_updated_at > rest.published_at,
-            })),
-          ),
-        )
-      case 'create_landing_page':
-      case 'duplicate_page': {
-        if (name === 'duplicate_page' && !row) return missing()
-        if (taken(body.p_slug)) return route.fulfill(duplicateSlug(body.p_slug))
-        const now = tick()
-        const created: Row = {
-          id: `page-${backend.rows.length + 1}`, title: String(body.p_title).trim(), slug: String(body.p_slug), status: 'draft',
-          draft_document: row ? row.draft_document : body.p_document,
-          draft_updated_at: now, published_at: null, archived_at: null, created_at: now,
-        }
-        backend.rows.push(created)
-        return route.fulfill(json(created))
-      }
-      case 'update_page_meta':
-        if (!row) return missing()
-        if (taken(body.p_slug, row.id)) return route.fulfill(duplicateSlug(body.p_slug))
-        if (row.status === 'published' && row.slug !== body.p_slug && body.p_confirm_slug_change !== true) {
-          return route.fulfill(fail('P0001', 'Esta página está no ar. Confirme a troca de endereço.'))
-        }
-        row.title = String(body.p_title).trim()
-        row.slug = String(body.p_slug)
-        return route.fulfill(json(row))
-      case 'unpublish_page':
-        if (!row || row.status !== 'published') return missing()
-        row.status = 'unpublished'
-        return route.fulfill(json(row))
-      case 'archive_page':
-        if (!row || row.status === 'archived') return missing()
-        row.status = 'archived'
-        row.archived_at = tick()
-        return route.fulfill(json(row))
-      case 'restore_page':
-        if (!row || row.status !== 'archived') return missing()
-        row.status = 'draft'
-        row.archived_at = null
-        return route.fulfill(json(row))
-      case 'delete_page':
-        if (!row) return missing()
-        backend.rows = backend.rows.filter((item) => item.id !== row.id)
-        return route.fulfill({ status: 204, body: '' })
-      default:
-        return route.fallback()
-    }
-  })
-  return backend
-}
 
 async function open(page: Page, seed: Partial<Row>[] = [], role: FakeRole = 'admin') {
   await signInAs(page, role)
@@ -172,8 +67,11 @@ test('cria uma página do zero: valida os campos, sugere o endereço e grava um 
   await expect(page.getByLabel('Endereço')).toHaveValue('verao-2026')
 
   await page.getByRole('button', { name: 'Criar página' }).click()
-  await expect(page).toHaveURL(/\/admin\/paginas$/)
+  // A página criada abre direto no editor.
+  await expect(page).toHaveURL(/\/admin\/paginas\/page-1$/)
   await expect(page.getByText('Página criada como rascunho.')).toBeVisible()
+
+  await page.goto('/admin/paginas')
   await expect(card(page, 'Promoção de Verão')).toContainText('/lp/verao-2026')
   await expect(card(page, 'Promoção de Verão')).toContainText('Rascunho')
   await expect(stat(page, 'Rascunhos').locator('p').nth(1)).toHaveText('1')

@@ -50,7 +50,7 @@ export const routes: RouteObject[] = [
             children: [
               { index: true, lazy: page(() => import('@/modules/landing-builder/pages/LandingPagesPage')) },
               { path: 'nova', lazy: page(() => import('@/modules/landing-builder/pages/NewLandingPage')) },
-              // O editor (/admin/paginas/:id) entra na Etapa 2 do construtor.
+              { path: ':id', lazy: page(() => import('@/modules/landing-builder/pages/LandingEditorPage')) },
               { path: '*', lazy: page(() => import('@/admin/layouts/AdminNotFoundPage')) },
             ],
           },
