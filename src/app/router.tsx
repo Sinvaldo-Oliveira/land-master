@@ -11,7 +11,7 @@ function page(loader: () => Promise<{ default: ComponentType }>): RouteObject['l
 
 export const routes: RouteObject[] = [
   // ---------------------------------------------------------------------------
-  // Área pública — bundle inicial. Home e /:slug chegam nas Fases 4 e 5.
+  // Área pública — bundle inicial. As landing pages (/lp/:slug) chegam na Etapa 7 do construtor.
   // ---------------------------------------------------------------------------
   {
     element: <PublicShell />,
@@ -45,7 +45,15 @@ export const routes: RouteObject[] = [
           { path: 'crm/*', lazy: page(() => import('@/modules/crm/CrmPage')) },
           { path: 'relatorios/*', lazy: page(() => import('@/modules/reports/ReportsPage')) },
           { path: 'site/*', lazy: page(() => import('@/modules/home/HomeEditorPage')) },
-          { path: 'paginas/*', lazy: page(() => import('@/modules/landing-builder/LandingPagesPage')) },
+          {
+            path: 'paginas',
+            children: [
+              { index: true, lazy: page(() => import('@/modules/landing-builder/pages/LandingPagesPage')) },
+              { path: 'nova', lazy: page(() => import('@/modules/landing-builder/pages/NewLandingPage')) },
+              // O editor (/admin/paginas/:id) entra na Etapa 2 do construtor.
+              { path: '*', lazy: page(() => import('@/admin/layouts/AdminNotFoundPage')) },
+            ],
+          },
           { path: 'formularios/*', lazy: page(() => import('@/modules/forms/FormsPage')) },
           { path: 'configuracoes/*', lazy: page(() => import('@/modules/settings/SettingsPage')) },
           { path: '*', lazy: page(() => import('@/admin/layouts/AdminNotFoundPage')) },

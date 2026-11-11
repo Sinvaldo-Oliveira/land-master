@@ -1,13 +1,13 @@
 # Plano de Implementação — Landing Page Builder
 
-> 2026-11-11 · Status: **aguardando autorização para a Etapa 1**. Detalha a Fase 5 (e parte das Fases 6 e 8) do [PLANO_DESENVOLVIMENTO](PLANO_DESENVOLVIMENTO.md).
+> 2026-11-11 · Status: **Etapa 1 implementada em 2026-11-11** (autorizada pelo responsável); falta você rodar o script do banco. Etapa 2 aguarda autorização. Detalha a Fase 5 (e parte das Fases 6 e 8) do [PLANO_DESENVOLVIMENTO](PLANO_DESENVOLVIMENTO.md).
 > Regra: uma etapa por vez, cada uma com autorização explícita. Nenhuma etapa é dada como pronta sem os testes indicados.
 
 ## Antes de começar (pendências de ambiente)
 
 | # | Pendência | Bloqueia | Quem resolve |
 |---|---|---|---|
-| P1 | Testes unitários não rodam (Vitest) e o `node_modules` está travado por processos MCP. | Etapa 1 | Você fecha os processos (ou reinicia o computador); eu rodo `npm ci` e a verificação completa. |
+| P1 | ~~Testes unitários não rodam (Vitest).~~ **Resolvida em 2026-11-11.** A causa não era o `node_modules`: o terminal abria a pasta como `c:…` (letra da unidade minúscula) e o Vitest carregava módulos duplicados. Rodando a partir de `C:…` tudo passa. O `node_modules` só fica travado enquanto o `npm run dev` está aberto, o que importa apenas na hora de instalar pacotes (Etapa 3). | — | — |
 | P2 | ~~Decisões D-L1 a D-L6 da [auditoria §6](AUDITORIA_LANDING_BUILDER.md).~~ **Resolvida em 2026-11-11:** as seis decididas. | — | — |
 | P3 | Restaurar `.env.example` e `.env.e2e`; revogar o token `sbp_` do `.env` e a chave secreta exposta. | — (higiene) | Você. |
 | P4 | Confirmar quais migrações estão aplicadas no banco remoto (CRM em especial). | Etapa 8 | Você roda uma consulta de leitura que eu preparo. |
@@ -17,7 +17,9 @@
 
 Cada etapa termina com: typecheck, lint, testes unitários, E2E, build, orçamento do bundle e um commit próprio.
 
-### Etapa 1 — Fundação do módulo
+### Etapa 1 — Fundação do módulo ✅ (2026-11-11)
+
+> Entregue: documento v2 (`src/renderer/document-v2.ts`, validação em `src/modules/landing-builder/schema/`), migração `20261111160000_landing_pages_management.sql`, telas `/admin/paginas` e `/admin/paginas/nova`. Verificado: lint, typecheck, 269 testes unitários, 101 testes E2E, build e orçamento do bundle. **Pendente de você:** rodar `supabase/RODAR_NO_SQL_EDITOR_landing_etapa1.sql` (critério 8). Os testes pgTAP foram escritos e não executados (sem banco de testes, P5). `audit_logs` ficou para a etapa de produção.
 
 - Documento v2: tipos, esquema Zod, `migrateDocument`, limites (blocos e profundidade).
 - Migração `landing_pages_management` (script para você rodar) e serviços do painel.

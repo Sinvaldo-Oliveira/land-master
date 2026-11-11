@@ -94,8 +94,8 @@ O que falta no banco (detalhe em [BANCO_LANDING_BUILDER](BANCO_LANDING_BUILDER.m
 
 | Risco | Efeito | O que resolve |
 |---|---|---|
-| Testes unitários não rodam nesta máquina (Vitest: "failed to find the current suite"). | A lógica nova de documento, histórico e validação ficaria sem teste unitário — inaceitável para este módulo. | Fechar os processos que travam o `node_modules` e reinstalar com `npm ci`. **Pré-requisito da Etapa 1.** |
-| `node_modules` travado por processos MCP. | Não consigo instalar o `@dnd-kit`. | Idem. Pré-requisito da Etapa 3. |
+| ~~Testes unitários não rodam nesta máquina (Vitest: "failed to find the current suite").~~ | **Resolvido em 2026-11-11.** Causa: pasta aberta como `c:…` (minúsculo) duplicava os módulos do Vitest. | Rodar os comandos a partir de `C:…`. |
+| `node_modules` travado enquanto o `npm run dev` está aberto. | Não consigo instalar o `@dnd-kit`. | Fechar o servidor de desenvolvimento na hora de instalar. Pré-requisito da Etapa 3. |
 | Estado das migrações no banco remoto. | A migração do CRM pode não estar aplicada; sem ela os formulários não têm destino. | Consulta de leitura no SQL Editor antes da Etapa 8. Eu não aplico migração remota: entrego o script para você rodar. |
 | Sem Docker: sem Supabase local nem pgTAP. | RLS e RPCs novas só são validadas por leitura e no banco real. | Projeto Supabase de testes, ou Docker, antes da Etapa 7. |
 | Arrastar para dentro do canvas em iframe. | Arraste entre documentos é o ponto técnico mais incerto. | Prova de conceito no início da Etapa 3; alternativa garantida: inserir por clique e reordenar pela árvore de camadas. |

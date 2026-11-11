@@ -126,6 +126,8 @@ export type Database = {
           status: 'draft' | 'published' | 'unpublished' | 'archived'; draft_document: Json
           draft_updated_at: string; draft_updated_by: string | null; published_version_id: string | null
           published_at: string | null; created_by: string | null; created_at: string; updated_at: string
+          /** Coluna da migração 20261111160000 (ausente em bancos que ainda não a aplicaram). */
+          archived_at?: string | null
         }
         Insert: never
         Update: never
@@ -158,6 +160,17 @@ export type Database = {
       save_page_draft: { Args: { p_page_id: string; p_document: Json; p_expected_updated_at?: string | null }; Returns: PageRow }
       publish_page: { Args: { p_page_id: string }; Returns: PageRow }
       get_public_site: { Args: Record<PropertyKey, never>; Returns: Json }
+      create_landing_page: { Args: { p_title: string; p_slug: string; p_document: Json }; Returns: PageRow }
+      duplicate_page: { Args: { p_page_id: string; p_title: string; p_slug: string }; Returns: PageRow }
+      update_page_meta: {
+        Args: { p_page_id: string; p_title: string; p_slug: string; p_confirm_slug_change?: boolean }
+        Returns: PageRow
+      }
+      unpublish_page: { Args: { p_page_id: string }; Returns: PageRow }
+      archive_page: { Args: { p_page_id: string }; Returns: PageRow }
+      restore_page: { Args: { p_page_id: string }; Returns: PageRow }
+      delete_page: { Args: { p_page_id: string }; Returns: undefined }
+      list_landing_pages: { Args: Record<PropertyKey, never>; Returns: LandingPageSummary[] }
     }
     Enums: { app_role: AppRoleName }
     CompositeTypes: { [_ in never]: never }
@@ -177,3 +190,16 @@ export type ActivityRow = Database['public']['Tables']['activities']['Row']
 export type LostReasonRow = Database['public']['Tables']['lost_reasons']['Row']
 export type LeadSourceRow = Database['public']['Tables']['lead_sources']['Row']
 export type PageRow = Database['public']['Tables']['pages']['Row']
+export type PageStatus = PageRow['status']
+/** Linha de list_landing_pages(): a landing sem o documento. */
+export type LandingPageSummary = {
+  id: string
+  title: string
+  slug: string
+  status: PageStatus
+  draft_updated_at: string
+  published_at: string | null
+  archived_at: string | null
+  created_at: string
+  has_unpublished_changes: boolean
+}

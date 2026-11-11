@@ -44,6 +44,17 @@ export default defineConfig({
       testMatch: 'site-editor.spec.ts',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: `http://localhost:${SHELL_PORT}` },
     },
+    // Gerenciamento de landing pages com backend falso em memória.
+    {
+      name: 'landing-pages',
+      testMatch: 'landing-pages.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: `http://localhost:${SHELL_PORT}` },
+    },
+    {
+      name: 'landing-pages-mobile',
+      testMatch: 'landing-pages.spec.ts',
+      use: { ...devices['Pixel 7'], baseURL: `http://localhost:${SHELL_PORT}` },
+    },
   ],
   // Os builds de teste NÃO dependem do .env de quem está desenvolvendo: as variáveis do processo
   // têm prioridade sobre os arquivos .env no Vite. "<...>" é tratado como ausente por src/lib/env.ts

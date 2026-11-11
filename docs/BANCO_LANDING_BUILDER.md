@@ -1,6 +1,6 @@
 # Banco de Dados — Landing Page Builder
 
-> 2026-11-11 · Status: **proposta**. Nada aqui foi aplicado. Complementa [MODELO_BANCO_DADOS §4.4](MODELO_BANCO_DADOS.md).
+> 2026-11-11 · Status: **Etapa 1 escrita em 2026-11-11** (migração `20261111160000_landing_pages_management.sql` e script `supabase/RODAR_NO_SQL_EDITOR_landing_etapa1.sql`); ainda **não aplicada** no banco remoto. As demais etapas seguem como proposta. Complementa [MODELO_BANCO_DADOS §4.4](MODELO_BANCO_DADOS.md).
 > Regra do projeto: migração em banco remoto só com a sua autorização; eu entrego o script e você roda no SQL Editor.
 
 ## 1. O que o PRD sugere × o que já existe
@@ -31,13 +31,14 @@ Só funções e uma coluna; nenhuma tabela nova.
 | `unpublish_page(p_page_id)` | `status = 'unpublished'`; a versão publicada continua guardada. |
 | `archive_page(p_page_id)` / `restore_page(p_page_id)` | Arquiva (sai do ar e da lista padrão) e restaura como rascunho. |
 | `delete_page(p_page_id)` | Só para `landing` (nunca a Home). Apaga página e versões. Envios de formulário **não** são apagados: a FK é `on delete set null` e o envio guarda o título e o slug da época. |
-| `list_landing_pages()` | Lista para a tela de gerenciamento, com contagem de leads quando `form_submissions` existir. |
+| `list_landing_pages()` | Lista para a tela de gerenciamento, sem o documento. A contagem de leads entra na Etapa 8, quando `form_submissions` existir. |
 
 **Ajustes:**
 
-- `assert_page_document` passa a aceitar `schemaVersion` 1 ou 2 e a checar, na v2, que `blocks` é uma lista, o total de blocos (≤ 200) e a profundidade (≤ 4).
+- `assert_page_document` passa a aceitar `schemaVersion` 1 ou 2 e a checar, na v2, que `blocks` é uma lista, que cada bloco tem `id` e `type`, o total de blocos (≤ 200) e a profundidade (≤ 4).
+- `ensure_home_page` e `save_page_draft` passam a exigir v1 na Home e v2 nas landing pages.
 - Slug: mantém o formato atual (`^[a-z0-9]+(-[a-z0-9]+)*$`, 3 a 80). Com `/lp/:slug` não é preciso lista de reservados.
-- Auditoria: publicar, despublicar, arquivar e excluir gravam em `audit_logs` (tabela prevista no modelo geral e ainda não criada — entra nesta migração se você aprovar, ou fica para a etapa de produção).
+- Auditoria: publicar, despublicar, arquivar e excluir gravam em `audit_logs` (tabela prevista no modelo geral e ainda não criada). **Ficou para a etapa de produção:** a migração da Etapa 1 não cria `audit_logs`.
 
 ## 3. Etapa 7 — leitura pública
 

@@ -72,7 +72,7 @@ const colors = z.object({
   muted: hex, mutedForeground: hex, card: hex, border: hex, ring: hex,
 })
 
-const section = z.discriminatedUnion('type', [
+export const sectionSchema = z.discriminatedUnion('type', [
   z.object({
     ...base,
     type: z.literal('site-header'),
@@ -280,21 +280,24 @@ const section = z.discriminatedUnion('type', [
   }),
 ])
 
+/** Tema do site: o mesmo na Home (v1) e nas landing pages (v2). */
+export const themeSchema = z.object({
+  preset: z.literal('horizonte'),
+  colors,
+  darkColors: colors,
+  fonts: z.object({ heading: z.enum(['sora', 'plus-jakarta-sans']), body: z.enum(['sora', 'plus-jakarta-sans']) }),
+  radius: z.enum(['sm', 'md', 'lg', 'xl']),
+  motion: z.enum(['none', 'subtle']),
+})
+
 export const pageDocumentSchema = z.object({
   schemaVersion: z.literal(1),
   seo: z.object({
     title: text('Título da página (SEO)', 70),
     description: text('Descrição da página (SEO)', 170),
   }),
-  theme: z.object({
-    preset: z.literal('horizonte'),
-    colors,
-    darkColors: colors,
-    fonts: z.object({ heading: z.enum(['sora', 'plus-jakarta-sans']), body: z.enum(['sora', 'plus-jakarta-sans']) }),
-    radius: z.enum(['sm', 'md', 'lg', 'xl']),
-    motion: z.enum(['none', 'subtle']),
-  }),
-  sections: z.array(section).max(20),
+  theme: themeSchema,
+  sections: z.array(sectionSchema).max(20),
   categories: z.array(text('Categoria', 40)).max(12, 'No máximo 12 categorias.').optional(),
 }).superRefine((doc, ctx) => {
   // Regras que dependem de dois campos da mesma seção (o trecho precisa existir no título).
