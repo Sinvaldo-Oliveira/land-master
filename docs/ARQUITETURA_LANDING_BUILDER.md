@@ -106,7 +106,8 @@ Overrides por dispositivo usam a mesma tabela, aplicados em cascata do maior par
 
 - **Modo de edição (Etapa 2):** o `LandingRenderer` recebe ganchos opcionais (`edit.attrs` e `edit.placeholder`). O painel usa `attrs` para marcar cada bloco (`data-block-id`, seleção, clique) no próprio elemento do bloco, sem embrulhar os elementos, então o HTML do canvas é o do site. O site público não passa os ganchos e não carrega nada do editor.
 - **Canvas em iframe** (o `PreviewFrame` atual, evoluído): só o iframe dá largura de viewport real, então os breakpoints do site funcionam de verdade em Desktop (1440), Tablet (768) e Mobile (375). O conteúdo é o `LandingRenderer` em modo de edição: links e formulários não disparam, e cada bloco ganha contorno de seleção e barra de ações.
-- **Estado:** um `useReducer` com o documento, a seleção e duas pilhas de histórico (desfazer/refazer, limite de 100 passos, agrupando digitação contínua). Todas as transições são funções puras em `state/`, testadas sem React.
+- **Estado:** o documento vive em um histórico imutável (`state/history.ts`: passado, presente e futuro; limite de 100 passos; alterações do mesmo campo em menos de 1 s viram um passo só). Todas as transições são funções puras em `state/`, testadas sem React. "Não salvo" é a comparação de referência entre o presente e o documento salvo, então desfazer até o ponto salvo volta a "Tudo salvo".
+- **Arraste e canvas em escala:** `editor/canvas-geometry.ts` converte pontos e retângulos entre o painel e o iframe. A barra do bloco selecionado e o indicador de destino são desenhados pelo painel, por cima do canvas, e não dentro do iframe.
 - **Autosave:** 2 s após a última mudança, com os estados "Salvando", "Salvo", "Alterações não salvas" e "Erro ao salvar". Usa o `p_expected_updated_at` que já existe para não sobrescrever outra sessão.
 - **Telas pequenas:** abaixo de 1024 px o editor avisa e oferece só pré-visualização (já previsto no DESIGN_SYSTEM §A.6).
 
@@ -114,7 +115,7 @@ Overrides por dispositivo usam a mesma tabela, aplicados em cascata do maior par
 
 | Biblioteca | Decisão | Motivo |
 |---|---|---|
-| `@dnd-kit/core` + `sortable` | **Adotar na Etapa 3**, só no admin | Teclado e leitor de tela embutidos, indicadores de posição, sem dependência de HTML5 drag (que falha em toque). Compatível com React 19 — confirmar a versão exata antes de instalar. |
+| `@dnd-kit/core` 6.3.1 | **Instalada na Etapa 3**, só no admin | Cuida do gesto (início com distância mínima, fim, cancelamento, toque) e do cartão que acompanha o ponteiro. Declara React ≥ 16.8 e roda com o React 19 do projeto. O pacote `sortable` **não** foi instalado: o destino é calculado pelo editor (`resolveDrop`) a partir da posição do ponteiro, porque o canvas é um iframe em escala e a regra de estrutura precisa ser uma só. O sensor de teclado da biblioteca não é usado; o caminho de teclado são os atalhos e os botões de mover. |
 | Zustand | **Não adotar agora** | `useReducer` + contexto resolve o estado do editor; adotar só se a medição mostrar re-renderização excessiva. |
 | TanStack Query, RHF, Zod, lucide, sonner | Já instaladas | Reutilizar. |
 | Biblioteca de animação | Não adotar | CSS + IntersectionObserver (ADR-010). |

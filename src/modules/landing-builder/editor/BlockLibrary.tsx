@@ -1,9 +1,32 @@
+import { useDraggable } from '@dnd-kit/core'
 import { X } from 'lucide-react'
 import { Button } from '@/admin/ui'
 import type { BlockType } from '@/renderer/document-v2'
-import { blockDefinitions, groupLabels, groupOrder } from '../blocks/definitions'
+import { blockDefinitions, groupLabels, groupOrder, type BlockDefinition } from '../blocks/definitions'
 
-/** Biblioteca de blocos: um clique insere o bloco na página (o destino é decidido pelo editor). */
+function LibraryItem({ definition, onPick }: { definition: BlockDefinition; onPick: (type: BlockType) => void }) {
+  // Clique insere; arrastar leva o bloco até o ponto escolhido no canvas ou nas camadas.
+  const { setNodeRef, listeners } = useDraggable({ id: `new:${definition.type}`, data: { source: { kind: 'new', type: definition.type } } })
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      {...listeners}
+      onClick={() => onPick(definition.type)}
+      aria-label={`Adicionar ${definition.label}`}
+      title="Clique para inserir ou arraste até o lugar"
+      className="flex w-full cursor-grab touch-none items-center gap-3 rounded-admin border border-admin-rule bg-admin-card px-3 py-2 text-left transition-colors duration-[120ms] hover:border-admin-accent hover:bg-admin-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-admin-accent active:cursor-grabbing"
+    >
+      <definition.icon aria-hidden="true" className="size-4 shrink-0 text-admin-ink-2" />
+      <span className="min-w-0">
+        <span className="block text-admin-sm font-medium text-admin-ink">{definition.label}</span>
+        <span className="block text-admin-xs break-words text-admin-ink-3">{definition.description}</span>
+      </span>
+    </button>
+  )
+}
+
+/** Biblioteca de blocos: um clique insere o bloco na página; arrastar escolhe o lugar. */
 export function BlockLibrary({
   onPick,
   insertHint,
@@ -33,18 +56,7 @@ export function BlockLibrary({
               .filter((definition) => definition.group === group)
               .map((definition) => (
                 <li key={definition.type}>
-                  <button
-                    type="button"
-                    onClick={() => onPick(definition.type)}
-                    aria-label={`Adicionar ${definition.label}`}
-                    className="flex w-full items-center gap-3 rounded-admin border border-admin-rule bg-admin-card px-3 py-2 text-left transition-colors duration-[120ms] hover:border-admin-accent hover:bg-admin-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-admin-accent"
-                  >
-                    <definition.icon aria-hidden="true" className="size-4 shrink-0 text-admin-ink-2" />
-                    <span className="min-w-0">
-                      <span className="block text-admin-sm font-medium text-admin-ink">{definition.label}</span>
-                      <span className="block text-admin-xs break-words text-admin-ink-3">{definition.description}</span>
-                    </span>
-                  </button>
+                  <LibraryItem definition={definition} onPick={onPick} />
                 </li>
               ))}
           </ul>

@@ -183,3 +183,96 @@ export function defaultTarget(doc: LandingDocument, selectedId: string | null): 
 export function setSeo(doc: LandingDocument, seo: Partial<LandingDocument['seo']>): LandingDocument {
   return { ...doc, seo: { ...doc.seo, ...seo } }
 }
+
+// ---------------------------------------------------------------------------
+// Arrastar e soltar: tudo vira um InsertTarget validado aqui, antes de tocar no documento.
+// ---------------------------------------------------------------------------
+
+/** O que está sendo arrastado: um bloco novo da biblioteca ou um bloco que já está na página. */
+export type DragSource = { kind: 'new'; type: BlockType } | { kind: 'move'; id: string }
+
+export function dragType(doc: LandingDocument, source: DragSource): BlockType | null {
+  return source.kind === 'new' ? source.type : (findBlock(doc.blocks, source.id)?.block.type ?? null)
+}
+
+/**
+ * Bloco que serve de referência para o que está sob o ponteiro.
+ * Um bloco de raiz (seção) arrastado sobre um elemento se refere à seção que contém o elemento:
+ * seções só trocam de lugar com seções.
+ */
+export function dropAnchor(doc: LandingDocument, source: DragSource, hoveredId: string): string | null {
+  const type = dragType(doc, source)
+  const hovered = findBlock(doc.blocks, hoveredId)
+  if (!type || !hovered) return null
+  if (isElementBlockType(type)) return hovered.block.id
+  return hovered.parent ? hovered.parent.id : hovered.block.id
+}
+
+/**
+ * Destino de um arraste, ou null quando soltar ali não é permitido (a tela não mostra indicador).
+ * `ratio` é a posição vertical do ponteiro dentro do bloco de referência (0 = topo, 1 = base).
+ */
+export function resolveDrop(doc: LandingDocument, source: DragSource, anchorId: string, ratio: number): InsertTarget | null {
+  const type = dragType(doc, source)
+  const anchor = findBlock(doc.blocks, anchorId)
+  if (!type || !anchor) return null
+  const half: InsertTarget['position'] = ratio < 0.5 ? 'before' : 'after'
+
+  let target: InsertTarget
+  if (isElementBlockType(type)) {
+    if (anchor.parent) {
+      // Sobre outro elemento: antes ou depois dele.
+      if (!canInsert(anchor.parent.type, type)) return null
+      target = { refId: anchorId, position: half }
+    } else if (canInsert(anchor.block.type, type)) {
+      // Sobre uma seção contêiner (fora dos filhos): entra no fim dela.
+      target = { refId: anchorId, position: 'inside' }
+    } else if (source.kind === 'new') {
+      // Bloco novo ao lado de uma seção pronta: o editor cria uma seção para recebê-lo.
+      target = { refId: anchorId, position: half }
+    } else {
+      // Mover um elemento para fora de qualquer seção não é permitido.
+      return null
+    }
+  } else {
+    if (anchor.parent) return null
+    target = { refId: anchorId, position: half }
+  }
+
+  if (source.kind === 'move') {
+    // Soltar sobre si mesmo, ou exatamente onde já está, não é um movimento.
+    if (source.id === target.refId) return null
+    return moveBlockTo(doc, source.id, target) === doc ? null : target
+  }
+  return target
+}
+
+/**
+ * Move um bloco existente para `target`. Estrutura inválida, destino inexistente ou movimento
+ * que não muda nada: devolve o MESMO documento.
+ */
+export function moveBlockTo(doc: LandingDocument, id: string, target: InsertTarget): LandingDocument {
+  const moving = findBlock(doc.blocks, id)
+  const ref = findBlock(doc.blocks, target.refId)
+  if (!moving || !ref || id === target.refId) return doc
+  // O destino não pode estar dentro do próprio bloco que está sendo movido.
+  if (findBlock(moving.block.children ?? [], target.refId)) return doc
+
+  const parent = target.position === 'inside' ? ref.block : ref.parent
+  if (!canInsert(parent?.type ?? null, moving.block.type)) return doc
+
+  const without = removeBlock(doc, id)
+  let index: number
+  if (target.position === 'inside') {
+    index = findBlock(without.blocks, ref.block.id)?.block.children?.length ?? 0
+  } else {
+    const refNow = findBlock(without.blocks, target.refId)
+    if (!refNow) return doc
+    index = refNow.index + (target.position === 'before' ? 0 : 1)
+  }
+
+  const sameParent = (moving.parent?.id ?? null) === (parent?.id ?? null)
+  if (sameParent && index === moving.index) return doc
+  const next = insertBlock(without, parent?.id ?? null, index, moving.block)
+  return next === without ? doc : next
+}

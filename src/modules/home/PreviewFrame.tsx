@@ -30,15 +30,23 @@ function mirrorStyles(target: Document): () => void {
 export function PreviewFrame({
   device,
   focusSectionId,
+  onKeyDown,
   children,
 }: {
   device: PreviewDevice
   /** Seção a mostrar na prévia ('top' = início, 'bottom' = fim, ou o id da seção). */
   focusSectionId?: string | null
+  /** Teclas pressionadas com o foco DENTRO da prévia (o iframe não repassa o teclado para o painel). */
+  onKeyDown?: ((event: KeyboardEvent) => void) | undefined
   children: ReactNode
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  // Sempre a versão mais recente do manipulador, sem reinstalar o ouvinte no iframe.
+  const keyHandler = useRef(onKeyDown)
+  useEffect(() => {
+    keyHandler.current = onKeyDown
+  }, [onKeyDown])
   const [body, setBody] = useState<HTMLElement | null>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
   const width = deviceWidths[device]
@@ -69,6 +77,7 @@ export function PreviewFrame({
         // Âncoras (#secao) rolam a prévia; links externos abrem em nova aba; o resto não navega a prévia.
         if (anchor && !href.startsWith('#') && anchor.getAttribute('target') !== '_blank') event.preventDefault()
       })
+      doc.addEventListener('keydown', (event) => keyHandler.current?.(event))
       setBody(doc.body)
     }
     iframe.addEventListener('load', onLoad)

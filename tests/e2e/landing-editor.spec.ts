@@ -125,7 +125,7 @@ test('clicar no canvas seleciona o bloco mais interno e não segue os links da p
   await expect(canvas(page).locator('[data-selected="true"]')).toHaveCount(0)
 })
 
-test('move, duplica, insere acima e exclui com confirmação', async ({ page }) => {
+test('move, duplica, insere acima e exclui (com desfazer)', async ({ page }) => {
   const backend = await open(page)
   await add(page, 'Título')
   await props(page).getByLabel('Texto').fill('Primeiro')
@@ -152,13 +152,13 @@ test('move, duplica, insere acima e exclui com confirmação', async ({ page }) 
   await add(page, 'Título')
   await expect(order()).toHaveText(['Segundo', 'Escreva o título aqui', 'Cópia', 'Primeiro'])
 
-  // Excluir pede confirmação.
+  // Excluir é imediato e pode ser desfeito pelo aviso.
   await props(page).getByRole('button', { name: 'Excluir' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Excluir este bloco?' })
-  await dialog.getByRole('button', { name: 'Cancelar' }).click()
-  await expect(order()).toHaveCount(4)
+  await expect(order()).toHaveText(['Segundo', 'Cópia', 'Primeiro'])
+  await page.getByRole('button', { name: 'Desfazer', exact: true }).click()
+  await expect(order()).toHaveText(['Segundo', 'Escreva o título aqui', 'Cópia', 'Primeiro'])
+  await canvas(page).getByRole('heading', { name: 'Escreva o título aqui' }).click()
   await props(page).getByRole('button', { name: 'Excluir' }).click()
-  await dialog.getByRole('button', { name: 'Excluir bloco' }).click()
   await expect(order()).toHaveText(['Segundo', 'Cópia', 'Primeiro'])
 
   await saveButton(page).click()

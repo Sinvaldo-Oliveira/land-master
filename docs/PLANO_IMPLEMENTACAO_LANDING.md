@@ -1,6 +1,6 @@
 # Plano de Implementação — Landing Page Builder
 
-> 2026-11-11 · Status: **Etapa 1 implementada em 2026-11-11** (autorizada pelo responsável); falta você rodar o script do banco. **Etapa 2 implementada em 2026-11-11.** Etapa 3 aguarda autorização. Detalha a Fase 5 (e parte das Fases 6 e 8) do [PLANO_DESENVOLVIMENTO](PLANO_DESENVOLVIMENTO.md).
+> 2026-11-11 · Status: **Etapa 1 implementada em 2026-11-11** (autorizada pelo responsável); falta você rodar o script do banco. **Etapas 2 e 3 implementadas em 2026-11-11.** Etapa 4 aguarda autorização. Detalha a Fase 5 (e parte das Fases 6 e 8) do [PLANO_DESENVOLVIMENTO](PLANO_DESENVOLVIMENTO.md).
 > Regra: uma etapa por vez, cada uma com autorização explícita. Nenhuma etapa é dada como pronta sem os testes indicados.
 
 ## Antes de começar (pendências de ambiente)
@@ -40,7 +40,13 @@ Cada etapa termina com: typecheck, lint, testes unitários, E2E, build, orçamen
 - Inserir por clique (antes/depois), salvar manual, alternar Desktop/Tablet/Mobile.
 - **Pronto quando:** monto uma página com 5 blocos, edito textos, salvo, recarrego e continuo de onde parei.
 
-### Etapa 3 — Arrastar e soltar e histórico
+### Etapa 3 — Arrastar e soltar e histórico ✅ (2026-11-11)
+
+> Entregue: arrastar da biblioteca para o canvas; reordenar e mover entre seções pelas camadas; mover pelo canvas com a alça da barra do bloco; indicador de destino (linha antes/depois, moldura dentro); desfazer e refazer (botões, Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y) com até 100 passos e digitação contínua agrupada; atalhos Delete, Ctrl+D, Alt+↑/↓, Esc e Ctrl+S, que valem também com o foco dentro do canvas; excluir sem pergunta, com "Desfazer" no aviso.
+> Critério: toda movimentação passa por funções puras (`moveBlockTo`, `resolveDrop`, `placeBlock`) testadas sem interface, vira um passo do histórico e pode ser desfeita. A tela só oferece destinos que `resolveDrop` aprova; um teste percorre todas as combinações de origem e destino e confirma que nenhuma gera estrutura inválida nem perde bloco.
+> Verificado: lint, typecheck, testes unitários, E2E com mouse real sobre o iframe, build e orçamento do bundle (números no relatório da etapa).
+> Resultado da prova de conceito do iframe: o gesto de arrastar não atravessa o iframe, então durante o arraste o iframe deixa de receber o ponteiro e o painel converte a posição do ponteiro para as coordenadas da página (descontando a escala). Funcionou; a alternativa de reserva não foi necessária.
+> Limites conhecidos: a biblioteca e as camadas ficam em abas da mesma coluna, então não dá para arrastar da biblioteca direto para as camadas (use o canvas, ou "inserir acima/abaixo"); arrastar um bloco clicando direto nele no canvas não existe, o arraste começa pela alça da barra; o arraste é por mouse ou toque, e o equivalente de teclado são os atalhos e os botões de mover; a rolagem automática do canvas só avança enquanto o ponteiro se mexe perto da borda.
 
 - Prova de conceito do arraste para dentro do iframe; depois, `@dnd-kit` na biblioteca, no canvas e nas camadas.
 - Duplicar, excluir, mover por teclado; `canInsert` bloqueando estruturas inválidas.

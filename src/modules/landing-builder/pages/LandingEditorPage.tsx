@@ -1,6 +1,7 @@
+import { DndContext, DragOverlay } from '@dnd-kit/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, FileQuestion, Monitor, MonitorSmartphone, Smartphone, Tablet, TriangleAlert } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { ArrowLeft, FileQuestion, Monitor, MonitorSmartphone, Redo2, Smartphone, Tablet, TriangleAlert, Undo2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { Link, useBlocker, useParams } from 'react-router'
 import { useDocumentTitle } from '@/admin/hooks/useDocumentTitle'
 import {
@@ -16,29 +17,36 @@ import {
   ErrorState,
   Skeleton,
   toast,
+  Tooltip,
 } from '@/admin/ui'
 import { cn } from '@/lib/cn'
 import { PreviewFrame, type PreviewDevice } from '@/modules/home/PreviewFrame'
-import type { Block, BlockType, LandingDocument } from '@/renderer/document-v2'
+import type { BlockType, LandingDocument } from '@/renderer/document-v2'
 import { LandingRenderer, type LandingEditHooks } from '@/renderer/LandingRenderer'
-import { blockLabel, createBlock } from '../blocks/definitions'
+import { blockLabel, createBlock, definitionOf } from '../blocks/definitions'
 import { BlockLibrary } from '../editor/BlockLibrary'
+import { DropIndicator, SelectionToolbar } from '../editor/CanvasOverlay'
 import { LayersPanel } from '../editor/LayersPanel'
 import { PropertiesPanel, type BlockCommand } from '../editor/PropertiesPanel'
+import { useBlockDrag } from '../editor/useBlockDrag'
 import { parseLandingDocument, validateLandingDocument, type LandingIssue } from '../schema/document'
 import { fetchLandingPage, LANDING_PAGES_KEY, saveLandingDraft, type LandingPageDraft } from '../services/pages'
 import {
   canMove,
   defaultTarget,
+  dragType,
   duplicateBlock,
   findBlock,
   moveBlock,
+  moveBlockTo,
   placeBlock,
   removeBlock,
   setSeo,
   updateBlockProps,
+  type DragSource,
   type InsertTarget,
 } from '../state/editor'
+import { canRedo, canUndo, createHistory, pushHistory, redo, undo } from '../state/history'
 import { statusLabels } from '../state/page-list'
 import '../editor/canvas.css'
 
@@ -120,23 +128,42 @@ const devices = [
 
 type LeftTab = 'blocks' | 'layers'
 
+/** Foco em campo de texto ou em um diálogo: as teclas pertencem a ele (apagar letras, desfazer a digitação…). */
+function isTyping(target: EventTarget | null): boolean {
+  // O alvo pode ser de outro documento (iframe do canvas): não dá para usar `instanceof Element`.
+  const element = target as Element | null
+  if (!element || typeof element.closest !== 'function') return false
+  return element.closest('input, textarea, select, [contenteditable="true"], [role="combobox"], [role="listbox"], [role="dialog"]') !== null
+}
+
 function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDocument }) {
   const queryClient = useQueryClient()
+  const canvasRef = useRef<HTMLElement>(null)
   const [saved, setSaved] = useState({ document: initial, updatedAt: page.draft_updated_at })
-  const [doc, setDoc] = useState(initial)
+  const [history, setHistory] = useState(() => createHistory(initial))
+  const doc = history.present
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [focusId, setFocusId] = useState<string | null>(null)
   const [device, setDevice] = useState<PreviewDevice>('desktop')
   const [tab, setTab] = useState<LeftTab>('blocks')
   const [pendingInsert, setPendingInsert] = useState<InsertTarget | null>(null)
-  const [pendingRemoval, setPendingRemoval] = useState<Block | null>(null)
   // A lista de problemas aparece depois da primeira tentativa de salvar e se atualiza a cada alteração.
   const [attempted, setAttempted] = useState(false)
 
+  // Voltar exatamente ao documento salvo (desfazendo) também conta como "tudo salvo".
   const dirty = doc !== saved.document
   const issues: LandingIssue[] = useMemo(() => (attempted ? validateLandingDocument(doc) : []), [attempted, doc])
   const issueIds = useMemo(() => new Set(issues.flatMap((issue) => (issue.blockId ? [issue.blockId] : []))), [issues])
   const selected = selectedId ? (findBlock(doc.blocks, selectedId)?.block ?? null) : null
+
+  /** Toda alteração do documento passa por aqui e vira um passo do histórico. `key` agrupa digitação. */
+  const commit = useCallback((change: (current: LandingDocument) => LandingDocument, key: string | null = null) => {
+    const now = Date.now()
+    setHistory((current) => pushHistory(current, change(current.present), now, key))
+  }, [])
+
+  const undoStep = useCallback(() => setHistory((current) => undo(current)), [])
+  const redoStep = useCallback(() => setHistory((current) => redo(current)), [])
 
   const save = useMutation({
     mutationFn: (document: LandingDocument) => saveLandingDraft(page.id, document, saved.updatedAt),
@@ -160,18 +187,6 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
     save.mutate(doc)
   }, [doc, save, saved.document])
 
-  // Ctrl/Cmd + S salva.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-        event.preventDefault()
-        requestSave()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [requestSave])
-
   // Protege alterações não salvas (navegação interna e fechamento da aba).
   const blocker = useBlocker(dirty)
   useEffect(() => {
@@ -182,52 +197,114 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
   }, [dirty])
 
   /** Seleção vinda das camadas ou da lista de problemas: também rola o canvas até o bloco. */
-  const selectAndReveal = (id: string | null) => {
+  const selectAndReveal = useCallback((id: string | null) => {
     setSelectedId(id)
     setFocusId(id ?? 'top')
-  }
+  }, [])
 
-  const pick = (type: BlockType) => {
-    const block = createBlock(type)
-    const result = placeBlock(doc, block, pendingInsert ?? defaultTarget(doc, selectedId), () => createBlock('section'))
-    if (!result.id) {
-      toast.error('Não foi possível inserir o bloco: a página chegou ao limite de blocos.')
-      return
-    }
-    setDoc(result.doc)
-    setPendingInsert(null)
-    selectAndReveal(result.id)
-  }
-
-  const command = (name: BlockCommand) => {
-    if (!selected) return
-    switch (name) {
-      case 'up':
-        return setDoc(moveBlock(doc, selected.id, -1))
-      case 'down':
-        return setDoc(moveBlock(doc, selected.id, 1))
-      case 'duplicate': {
-        const result = duplicateBlock(doc, selected.id)
-        if (!result.id) return void toast.error('Não foi possível duplicar: a página chegou ao limite de blocos.')
-        setDoc(result.doc)
-        return selectAndReveal(result.id)
+  /** Bloco novo (clique na biblioteca ou arraste). `target` null = fim da página. */
+  const insertNew = useCallback(
+    (type: BlockType, target: InsertTarget | null) => {
+      const result = placeBlock(doc, createBlock(type), target, () => createBlock('section'))
+      if (!result.id) {
+        toast.error('Não foi possível inserir o bloco: a página chegou ao limite de blocos.')
+        return
       }
-      case 'delete':
-        return setPendingRemoval(selected)
-      case 'insert-before':
-      case 'insert-after':
-        setPendingInsert({ refId: selected.id, position: name === 'insert-before' ? 'before' : 'after' })
-        return setTab('blocks')
-    }
-  }
+      commit(() => result.doc)
+      setPendingInsert(null)
+      selectAndReveal(result.id)
+    },
+    [commit, doc, selectAndReveal],
+  )
 
-  const confirmRemoval = () => {
-    if (!pendingRemoval) return
-    setDoc(removeBlock(doc, pendingRemoval.id))
-    if (pendingInsert?.refId === pendingRemoval.id) setPendingInsert(null)
-    setSelectedId(null)
-    setPendingRemoval(null)
-  }
+  const pick = (type: BlockType) => insertNew(type, pendingInsert ?? defaultTarget(doc, selectedId))
+
+  const command = useCallback(
+    (name: BlockCommand) => {
+      if (!selected) return
+      const id = selected.id
+      switch (name) {
+        case 'up':
+          return commit((current) => moveBlock(current, id, -1))
+        case 'down':
+          return commit((current) => moveBlock(current, id, 1))
+        case 'duplicate': {
+          const result = duplicateBlock(doc, id)
+          if (!result.id) return void toast.error('Não foi possível duplicar: a página chegou ao limite de blocos.')
+          commit(() => result.doc)
+          return selectAndReveal(result.id)
+        }
+        case 'delete':
+          commit((current) => removeBlock(current, id))
+          setPendingInsert((current) => (current?.refId === id ? null : current))
+          setSelectedId(null)
+          // Sem pergunta antes: excluir é um passo do histórico e pode ser desfeito na hora.
+          return void toast(`“${blockLabel(selected)}” excluído.`, { action: { label: 'Desfazer', onClick: undoStep } })
+        case 'insert-before':
+        case 'insert-after':
+          setPendingInsert({ refId: id, position: name === 'insert-before' ? 'before' : 'after' })
+          return setTab('blocks')
+      }
+    },
+    [commit, doc, selectAndReveal, selected, undoStep],
+  )
+
+  // Atalhos de teclado. Valem no painel e com o foco dentro do canvas (o iframe não repassa as teclas).
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      const mod = event.ctrlKey || event.metaKey
+      const key = event.key.toLowerCase()
+      if (mod && key === 's') {
+        event.preventDefault()
+        return requestSave()
+      }
+      if (isTyping(event.target)) return
+
+      if (mod && key === 'z') {
+        event.preventDefault()
+        return event.shiftKey ? redoStep() : undoStep()
+      }
+      if (mod && key === 'y') {
+        event.preventDefault()
+        return redoStep()
+      }
+      if (key === 'escape') return setSelectedId(null)
+      if (!selected) return
+
+      if (key === 'delete' || key === 'backspace') {
+        event.preventDefault()
+        return command('delete')
+      }
+      if (mod && key === 'd') {
+        event.preventDefault()
+        return command('duplicate')
+      }
+      if (event.altKey && (key === 'arrowup' || key === 'arrowdown')) {
+        event.preventDefault()
+        return command(key === 'arrowup' ? 'up' : 'down')
+      }
+    },
+    [command, redoStep, requestSave, selected, undoStep],
+  )
+  useEffect(() => {
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onKeyDown])
+
+  // Arrastar e soltar: o destino já chega validado pela regra de estrutura.
+  const onDrop = useCallback(
+    (source: DragSource, target: InsertTarget | null) => {
+      if (source.kind === 'new') return insertNew(source.type, target)
+      if (!target) return
+      commit((current) => moveBlockTo(current, source.id, target))
+      setSelectedId(source.id)
+    },
+    [commit, insertNew],
+  )
+  const drag = useBlockDrag({ document: doc, canvasRef, onDrop })
+  const dragging = drag.source !== null
+  const draggedType = drag.source ? dragType(doc, drag.source) : null
+  const draggedDefinition = draggedType ? definitionOf(draggedType) : undefined
 
   const edit: LandingEditHooks = useMemo(
     () => ({
@@ -246,7 +323,7 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
       }),
       placeholder: (block) => (
         <div className="lb-placeholder">
-          {block.type === 'section' ? 'Seção vazia. Escolha um elemento na lista de blocos.' : 'Imagem ainda não enviada.'}
+          {block.type === 'section' ? 'Seção vazia. Escolha ou arraste um elemento da lista de blocos.' : 'Imagem ainda não enviada.'}
         </div>
       ),
     }),
@@ -258,6 +335,11 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
     pendingInsert && insertRef
       ? `Escolha o bloco para inserir ${pendingInsert.position === 'before' ? 'acima' : 'abaixo'} de “${blockLabel(insertRef)}”.`
       : null
+
+  const historyButtons = [
+    { label: 'Desfazer (Ctrl+Z)', icon: Undo2, enabled: canUndo(history), run: undoStep },
+    { label: 'Refazer (Ctrl+Shift+Z)', icon: Redo2, enabled: canRedo(history), run: redoStep },
+  ]
 
   return (
     <>
@@ -294,6 +376,15 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
                 {save.isPending ? 'Salvando…' : dirty ? 'Alterações não salvas' : 'Tudo salvo'}
               </span>
             </p>
+          </div>
+          <div role="group" aria-label="Histórico" className="inline-flex gap-1">
+            {historyButtons.map((button) => (
+              <Tooltip key={button.label} content={button.label}>
+                <Button variant="secondary" size="icon" aria-label={button.label} disabled={!button.enabled} onClick={button.run}>
+                  <button.icon aria-hidden="true" />
+                </Button>
+              </Tooltip>
+            ))}
           </div>
           <div role="radiogroup" aria-label="Tamanho da tela" className="inline-flex rounded-admin-lg border border-admin-rule bg-admin-card p-1">
             {devices.map((option) => (
@@ -339,63 +430,99 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
           </div>
         ) : null}
 
-        <div className="mt-4 grid h-[calc(100dvh-13.5rem)] min-h-[520px] grid-cols-[15rem_minmax(0,1fr)_19rem] gap-3">
-          <aside aria-label="Blocos e camadas" className="flex min-h-0 flex-col rounded-admin-lg border border-admin-rule bg-admin-card">
-            <div role="tablist" aria-label="Painel esquerdo" className="grid grid-cols-2 gap-1 border-b border-admin-rule p-1">
-              {(
-                [
-                  { value: 'blocks', label: 'Blocos' },
-                  { value: 'layers', label: 'Camadas' },
-                ] as const
-              ).map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="tab"
-                  id={`editor-tab-${option.value}`}
-                  aria-selected={tab === option.value}
-                  aria-controls="editor-left-panel"
-                  onClick={() => setTab(option.value)}
-                  className="rounded-admin px-3 py-1.5 text-admin-sm font-medium text-admin-ink-2 aria-selected:bg-admin-ink aria-selected:text-white"
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <div id="editor-left-panel" role="tabpanel" aria-labelledby={`editor-tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto p-3">
-              {tab === 'blocks' ? (
-                <BlockLibrary onPick={pick} insertHint={insertHint} onCancelInsert={() => setPendingInsert(null)} />
-              ) : (
-                <LayersPanel blocks={doc.blocks} selectedId={selectedId} issueIds={issueIds} onSelect={selectAndReveal} />
-              )}
-            </div>
-          </aside>
+        <DndContext sensors={drag.sensors} {...drag.handlers}>
+          <div className="mt-4 grid h-[calc(100dvh-13.5rem)] min-h-[520px] grid-cols-[15rem_minmax(0,1fr)_19rem] gap-3">
+            <aside aria-label="Blocos e camadas" className="flex min-h-0 flex-col rounded-admin-lg border border-admin-rule bg-admin-card">
+              <div role="tablist" aria-label="Painel esquerdo" className="grid grid-cols-2 gap-1 border-b border-admin-rule p-1">
+                {(
+                  [
+                    { value: 'blocks', label: 'Blocos' },
+                    { value: 'layers', label: 'Camadas' },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    id={`editor-tab-${option.value}`}
+                    aria-selected={tab === option.value}
+                    aria-controls="editor-left-panel"
+                    onClick={() => setTab(option.value)}
+                    className="rounded-admin px-3 py-1.5 text-admin-sm font-medium text-admin-ink-2 aria-selected:bg-admin-ink aria-selected:text-white"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <div id="editor-left-panel" role="tabpanel" aria-labelledby={`editor-tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto p-3">
+                {tab === 'blocks' ? (
+                  <BlockLibrary onPick={pick} insertHint={insertHint} onCancelInsert={() => setPendingInsert(null)} />
+                ) : (
+                  <LayersPanel
+                    blocks={doc.blocks}
+                    selectedId={selectedId}
+                    issueIds={issueIds}
+                    drop={drag.drop?.zone === 'layers' ? drag.drop.target : null}
+                    onSelect={selectAndReveal}
+                  />
+                )}
+              </div>
+            </aside>
 
-          <section aria-label="Canvas" className="min-h-0 min-w-0 rounded-admin-lg bg-admin-sunken p-3">
-            <PreviewFrame device={device} focusSectionId={focusId}>
-              {doc.blocks.length === 0 ? (
-                <div className="lb-placeholder" style={{ margin: '3rem auto', maxWidth: '32rem', fontFamily: 'system-ui, sans-serif' }}>
-                  Página em branco. Escolha um bloco na coluna da esquerda para começar.
-                </div>
-              ) : (
-                <LandingRenderer document={doc} preview edit={edit} />
-              )}
-            </PreviewFrame>
-          </section>
+            <section
+              ref={canvasRef}
+              aria-label="Canvas"
+              // Durante o arraste o iframe não recebe o ponteiro: quem acompanha o movimento é o painel.
+              className={cn('relative min-h-0 min-w-0 rounded-admin-lg bg-admin-sunken p-3', dragging && '[&_iframe]:pointer-events-none')}
+            >
+              <PreviewFrame device={device} focusSectionId={focusId} onKeyDown={onKeyDown}>
+                {doc.blocks.length === 0 ? (
+                  <div className="lb-placeholder" style={{ margin: '3rem auto', maxWidth: '32rem', fontFamily: 'system-ui, sans-serif' }}>
+                    Página em branco. Escolha ou arraste um bloco da coluna da esquerda para começar.
+                  </div>
+                ) : (
+                  <LandingRenderer document={doc} preview edit={edit} />
+                )}
+              </PreviewFrame>
+              {selected ? (
+                <SelectionToolbar
+                  canvasRef={canvasRef}
+                  blockId={selected.id}
+                  label={blockLabel(selected)}
+                  revision={`${device}:${history.past.length}:${history.future.length}:${history.lastAt}`}
+                  canMoveUp={canMove(doc, selected.id, -1)}
+                  canMoveDown={canMove(doc, selected.id, 1)}
+                  hidden={dragging}
+                  onCommand={command}
+                />
+              ) : null}
+              <DropIndicator drop={drag.drop} />
+            </section>
 
-          <aside aria-label="Propriedades" className="min-h-0 overflow-y-auto rounded-admin-lg border border-admin-rule bg-admin-card p-4">
-            <PropertiesPanel
-              document={doc}
-              block={selected}
-              slug={page.slug}
-              canMoveUp={selected ? canMove(doc, selected.id, -1) : false}
-              canMoveDown={selected ? canMove(doc, selected.id, 1) : false}
-              onChangeProps={(blockId, props) => setDoc((current) => updateBlockProps(current, blockId, props))}
-              onChangeSeo={(seo) => setDoc((current) => setSeo(current, seo))}
-              onCommand={command}
-            />
-          </aside>
-        </div>
+            <aside aria-label="Propriedades" className="min-h-0 overflow-y-auto rounded-admin-lg border border-admin-rule bg-admin-card p-4">
+              <PropertiesPanel
+                document={doc}
+                block={selected}
+                slug={page.slug}
+                canMoveUp={selected ? canMove(doc, selected.id, -1) : false}
+                canMoveDown={selected ? canMove(doc, selected.id, 1) : false}
+                onChangeProps={(blockId, props) => commit((current) => updateBlockProps(current, blockId, props), `props:${blockId}`)}
+                onChangeSeo={(seo) => commit((current) => setSeo(current, seo), 'seo')}
+                onCommand={command}
+              />
+            </aside>
+          </div>
+
+          {/* Cartão que acompanha o ponteiro. Não recebe o ponteiro, para não esconder o destino. */}
+          <DragOverlay dropAnimation={null} style={{ pointerEvents: 'none' }}>
+            {draggedDefinition ? (
+              <div className="inline-flex items-center gap-2 rounded-admin border border-[#2563eb] bg-admin-card px-3 py-2 text-admin-sm font-medium text-admin-ink shadow-admin-pop">
+                <draggedDefinition.icon aria-hidden="true" className="size-4 text-admin-ink-2" />
+                {draggedDefinition.label}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       <Dialog open={blocker.state === 'blocked'} onOpenChange={(open) => !open && blocker.reset?.()}>
@@ -406,26 +533,6 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
             </Button>
             <Button variant="danger" onClick={() => blocker.proceed?.()}>
               Sair e descartar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={pendingRemoval !== null} onOpenChange={(open) => !open && setPendingRemoval(null)}>
-        <DialogContent
-          title="Excluir este bloco?"
-          description={
-            pendingRemoval
-              ? `“${blockLabel(pendingRemoval)}” sai do rascunho${(pendingRemoval.children?.length ?? 0) > 0 ? ', junto com os elementos dentro dele' : ''}. Ainda não há desfazer.`
-              : undefined
-          }
-        >
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setPendingRemoval(null)}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={confirmRemoval}>
-              Excluir bloco
             </Button>
           </DialogFooter>
         </DialogContent>
