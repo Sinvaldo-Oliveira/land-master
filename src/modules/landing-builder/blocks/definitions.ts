@@ -326,7 +326,23 @@ export function createBlock(type: BlockType, makeId: IdFactory = newBlockId, ide
   }
   if (identity && type === 'whatsapp-button' && identity.whatsapp) block.props = { ...block.props, phone: identity.whatsapp }
   if (['section', 'columns', 'grid', 'column'].includes(type)) block.children = []
+  // Colunas e Grade já nascem com as colunas prontas para receber elementos.
+  const count = columnCountOf(block)
+  if (count) block.children = Array.from({ length: count }, () => createBlock('column', makeId))
   return block
+}
+
+/** Quantas colunas um bloco Colunas ("1-2" = 2) ou Grade (columns) mostra lado a lado; null para outros tipos. */
+export function columnCountOf(block: Block): number | null {
+  if (block.type === 'columns') {
+    const proportions = typeof block.props.proportions === 'string' ? block.props.proportions : '1-1'
+    return Math.min(4, Math.max(1, proportions.split('-').length))
+  }
+  if (block.type === 'grid') {
+    const columns = Number(block.props.columns)
+    return Number.isFinite(columns) ? Math.min(4, Math.max(2, Math.round(columns))) : 3
+  }
+  return null
 }
 
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')

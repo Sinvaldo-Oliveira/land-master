@@ -103,6 +103,25 @@ export function insertBlock(doc: LandingDocument, parentId: string | null, index
   )
 }
 
+/**
+ * Ajusta quantas Colunas um bloco Colunas/Grade tem. Faltando, cria colunas vazias no fim;
+ * sobrando, remove só as do fim que estão VAZIAS — conteúdo da pessoa nunca é apagado aqui.
+ */
+export function syncColumnCount(doc: LandingDocument, id: string, count: number, makeColumn: () => Block): LandingDocument {
+  const location = findBlock(doc.blocks, id)
+  if (!location || (location.block.type !== 'columns' && location.block.type !== 'grid')) return doc
+  const children = [...(location.block.children ?? [])]
+  const room = MAX_BLOCKS - countBlocks(doc.blocks)
+  let added = 0
+  while (children.length < count && added < room) {
+    children.push(makeColumn())
+    added += 1
+  }
+  while (children.length > count && (children.at(-1)?.children ?? []).length === 0) children.pop()
+  if (children.length === (location.block.children ?? []).length && added === 0) return doc
+  return updateBlock(doc, id, (block) => ({ ...block, children }))
+}
+
 export function removeBlock(doc: LandingDocument, id: string): LandingDocument {
   const location = findBlock(doc.blocks, id)
   if (!location) return doc

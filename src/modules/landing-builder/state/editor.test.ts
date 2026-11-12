@@ -11,6 +11,7 @@ import {
   placeBlock,
   removeBlock,
   setSeo,
+  syncColumnCount,
   updateBlockResponsive,
   updateBlockStyle,
   updateBlockProps,
@@ -229,5 +230,31 @@ describe('setSeo', () => {
     const doc = sample()
     expect(setSeo(doc, { description: 'Nova' }).seo).toEqual({ title: 'Teste', description: 'Nova' })
     expect(doc.seo.description).toBe('')
+  })
+})
+
+describe('syncColumnCount', () => {
+  const withColumns = (columns: Block[]): LandingDocument => ({
+    ...createEmptyLanding('Teste', horizonteTheme),
+    blocks: [block('s', 'section', [block('cols', 'columns', columns)])],
+  })
+  let seq = 0
+  const makeColumn = () => block(`nova-${++seq}`, 'column', [])
+
+  it('cria as colunas que faltam no fim', () => {
+    seq = 0
+    const doc = withColumns([block('c1', 'column', [block('h', 'heading')]), block('c2', 'column', [])])
+    expect(shape(syncColumnCount(doc, 'cols', 4, makeColumn))).toBe('s[cols[c1[h] c2[] nova-1[] nova-2[]]]')
+  })
+
+  it('remove só colunas vazias do fim; coluna com conteúdo fica', () => {
+    const doc = withColumns([block('c1', 'column', []), block('c2', 'column', [block('h', 'heading')]), block('c3', 'column', [])])
+    expect(shape(syncColumnCount(doc, 'cols', 1, makeColumn))).toBe('s[cols[c1[] c2[h]]]')
+  })
+
+  it('mesmo número de colunas ou bloco que não é Colunas/Grade: nada muda', () => {
+    const doc = withColumns([block('c1', 'column', []), block('c2', 'column', [])])
+    expect(syncColumnCount(doc, 'cols', 2, makeColumn)).toBe(doc)
+    expect(syncColumnCount(doc, 's', 3, makeColumn)).toBe(doc)
   })
 })

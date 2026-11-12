@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { BLOCK_TYPES, canInsert, createEmptyLanding, isNestedBlockType, type Block, type LandingDocument } from '@/renderer/document-v2'
 import { horizonteTheme } from '@/renderer/templates/institucional'
 import { validateLandingDocument } from '../schema/document'
-import { blockDefinitions, blockLabel, blockSummary, createBlock, definitionOf, groupOrder } from './definitions'
+import { blockDefinitions, blockLabel, blockSummary, columnCountOf, createBlock, definitionOf, groupOrder } from './definitions'
 
 describe('definições de bloco', () => {
   it('inclui todos os blocos previstos para a Etapa 4', () => {
@@ -26,7 +26,8 @@ describe('definições de bloco', () => {
   })
 
   it.each(BLOCK_TYPES)('o conteúdo inicial de "%s" passa na validação completa', (type) => {
-    let block = createBlock(type, (t) => `${t}-1`)
+    let seq = 0
+    let block = createBlock(type, (t) => `${t}-${++seq}`)
     // Elementos vivem dentro de uma seção.
     if (isNestedBlockType(type)) {
       if (type === 'column') {
@@ -80,5 +81,26 @@ describe('definições de bloco', () => {
     expect(blockLabel({ id: 'x', type: 'novo-tipo' as never, v: 1, props: {} })).toBe('Bloco desconhecido')
     // Nome dado pela pessoa a uma seção pronta tem prioridade.
     expect(blockLabel({ ...createBlock('faq'), props: { ...createBlock('faq').props, name: 'Dúvidas do curso' } })).toBe('Dúvidas do curso')
+  })
+})
+
+describe('Colunas e Grade já nascem com colunas', () => {
+  it('Colunas "2 iguais" cria 2 colunas vazias; Grade cria 3', () => {
+    let seq = 0
+    const columns = createBlock('columns', (t) => `${t}-${++seq}`)
+    expect(columns.children?.map((c) => c.type)).toEqual(['column', 'column'])
+    expect(columns.children?.every((c) => Array.isArray(c.children) && c.children.length === 0)).toBe(true)
+    expect(new Set(columns.children?.map((c) => c.id)).size).toBe(2)
+    expect(createBlock('grid').children).toHaveLength(3)
+  })
+
+  it('columnCountOf lê proporções e nº de colunas', () => {
+    const make = (type: 'columns' | 'grid', props: Record<string, unknown>): Block => ({ id: 'x', type, v: 1, props })
+    expect(columnCountOf(make('columns', { proportions: '1' }))).toBe(1)
+    expect(columnCountOf(make('columns', { proportions: '1-2' }))).toBe(2)
+    expect(columnCountOf(make('columns', { proportions: '1-1-1-1' }))).toBe(4)
+    expect(columnCountOf(make('grid', { columns: 4 }))).toBe(4)
+    expect(columnCountOf(make('grid', {}))).toBe(3)
+    expect(columnCountOf({ id: 's', type: 'section', v: 1, props: {} })).toBeNull()
   })
 })

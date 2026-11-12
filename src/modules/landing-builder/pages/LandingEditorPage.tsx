@@ -23,7 +23,7 @@ import { cn } from '@/lib/cn'
 import { PreviewFrame, type PreviewDevice } from '@/modules/home/PreviewFrame'
 import { canInsert, type BlockType, type LandingDocument } from '@/renderer/document-v2'
 import { LandingRenderer, type LandingEditHooks } from '@/renderer/LandingRenderer'
-import { blockLabel, createBlock, definitionOf } from '../blocks/definitions'
+import { blockLabel, columnCountOf, createBlock, definitionOf } from '../blocks/definitions'
 import { BlockLibrary } from '../editor/BlockLibrary'
 import { DropIndicator, SelectionToolbar } from '../editor/CanvasOverlay'
 import { LayersPanel } from '../editor/LayersPanel'
@@ -42,6 +42,7 @@ import {
   placeBlock,
   removeBlock,
   setSeo,
+  syncColumnCount,
   updateBlockProps,
   updateBlockResponsive,
   updateBlockStyle,
@@ -358,7 +359,9 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
             ? 'Imagem ainda não enviada. Enquanto isso, ela não aparece no site.'
             : block.type === 'video'
               ? 'Vídeo ainda não enviado. Enquanto isso, ele não aparece no site.'
-              : `${block.type === 'section' ? 'Seção vazia' : 'Área vazia'}. Escolha ou arraste um elemento da lista de blocos. Vazia, ela não aparece no site.`}
+              : block.type === 'column'
+                ? 'Coluna vazia. Clique aqui e escolha um elemento na lista de blocos, ou arraste um elemento até aqui.'
+                : `${block.type === 'section' ? 'Seção vazia' : 'Área vazia'}. Escolha ou arraste um elemento da lista de blocos. Vazia, ela não aparece no site.`}
         </div>
       ),
     }),
@@ -553,7 +556,15 @@ function Editor({ page, initial }: { page: LandingPageDraft; initial: LandingDoc
                 slug={page.slug}
                 canMoveUp={selected ? canMove(doc, selected.id, -1) : false}
                 canMoveDown={selected ? canMove(doc, selected.id, 1) : false}
-                onChangeProps={(blockId, props) => commit((current) => updateBlockProps(current, blockId, props), `props:${blockId}`)}
+                onChangeProps={(blockId, props) =>
+                  commit((current) => {
+                    const next = updateBlockProps(current, blockId, props)
+                    // Trocar as proporções de Colunas (ou o nº de colunas da Grade) cria/remove as colunas vazias.
+                    const changed = findBlock(next.blocks, blockId)?.block
+                    const count = changed ? columnCountOf(changed) : null
+                    return count ? syncColumnCount(next, blockId, count, () => createBlock('column')) : next
+                  }, `props:${blockId}`)
+                }
                 onChangeStyle={(blockId, style) => commit((current) => updateBlockStyle(current, blockId, style), `style:${blockId}`)}
                 onChangeResponsive={(blockId, responsive) => commit((current) => updateBlockResponsive(current, blockId, responsive), `responsive:${blockId}`)}
                 onChangeSeo={(seo) => commit((current) => setSeo(current, seo), 'seo')}

@@ -319,3 +319,39 @@ for (const role of ['manager', 'sales'] as const) {
     expect(backend.calls).toHaveLength(0)
   })
 }
+
+test('Colunas já vêm com as colunas prontas; cada coluna recebe elementos e trocar a proporção ajusta as colunas', async ({ page }) => {
+  const backend = await open(page)
+  const empty = canvas(page).getByText(/^Coluna vazia\./)
+
+  // Página em branco: o editor cria a Seção e coloca as Colunas ("2 iguais") dentro dela.
+  await add(page, 'Colunas')
+  await expect(empty).toHaveCount(2)
+
+  // Clicar numa coluna e escolher o elemento: ele entra naquela coluna.
+  await empty.first().click()
+  await expect(props(page).getByRole('heading', { name: 'Coluna' })).toBeVisible()
+  await add(page, 'Título')
+  await expect(canvas(page).getByRole('heading', { name: 'Escreva o título aqui' })).toBeVisible()
+  await expect(empty).toHaveCount(1)
+  await empty.click()
+  await add(page, 'Imagem')
+  await expect(empty).toHaveCount(0)
+
+  // "3 iguais" cria a terceira coluna; voltar para "1 coluna" só remove a coluna vazia.
+  await page.getByRole('tab', { name: 'Camadas' }).click()
+  await layers(page).getByRole('button', { name: /^Colunas/ }).click()
+  await page.getByRole('tab', { name: 'Blocos' }).click()
+  await props(page).getByRole('combobox', { name: 'Proporções' }).click()
+  await page.getByRole('option', { name: '3 iguais' }).click()
+  await expect(empty).toHaveCount(1)
+  await props(page).getByRole('combobox', { name: 'Proporções' }).click()
+  await page.getByRole('option', { name: '1 coluna' }).click()
+  await expect(empty).toHaveCount(0)
+
+  await saveButton(page).click()
+  await expect(page.getByText('Tudo salvo')).toBeVisible()
+  const columns = savedDoc(backend).blocks[0]?.children?.[0] as unknown as { type: string; children: { type: string; children: { type: string }[] }[] }
+  expect(columns.type).toBe('columns')
+  expect(columns.children.map((column) => column.children.map((child) => child.type))).toEqual([['heading'], ['image']])
+})
