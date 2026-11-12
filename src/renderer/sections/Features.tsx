@@ -1,5 +1,6 @@
 import { revealDelay } from '../context'
-import { ActionLink, Container, IconTile, SectionHeading, SectionShell } from '../primitives'
+import { HoverCtaButton } from '../HoverCtaButton'
+import { Container, IconTile, SectionHeading, SectionShell } from '../primitives'
 import type { FeaturesSection } from '../types'
 
 export function Features({ section }: { section: FeaturesSection }) {
@@ -26,7 +27,7 @@ export function Features({ section }: { section: FeaturesSection }) {
               <p className="mt-2.5 text-site-muted-foreground">{item.description}</p>
               {item.link ? (
                 <div className="mt-6">
-                  <ActionLink link={item.link} variant="secondary" arrow />
+                  <HoverCtaButton link={item.link} />
                 </div>
               ) : null}
             </li>

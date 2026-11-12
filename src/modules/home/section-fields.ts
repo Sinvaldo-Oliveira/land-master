@@ -169,6 +169,7 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
         { kind: 'icon', key: 'icon', label: 'Ícone' },
         { kind: 'text', key: 'title', label: 'Título', max: 60 },
         { kind: 'textarea', key: 'description', label: 'Descrição', max: 220, rows: 2 },
+        { kind: 'link', key: 'link', label: 'Botão (CTA)', optional: true },
       ],
       create: () => ({ icon: 'sparkles', title: 'Novo serviço', description: 'Descreva o serviço em uma ou duas frases.' }),
     },
