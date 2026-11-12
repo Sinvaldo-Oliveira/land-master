@@ -234,7 +234,22 @@ export type InteractiveHeroSection = SectionBase & {
   buttonSize: number
 }
 
-export type VideoCardFormat = 'poster' | 'story' | 'square' | 'classic' | 'wide'
+/**
+ * Hero interativo 02: tela cheia com uma rede de partículas em canvas que se afasta do mouse,
+ * selo, título em degradê, texto e botão. Fundo padrão preto; cores das partículas vêm do tema
+ * (ou dos destaques da "Cor do texto" personalizada).
+ */
+export type ParticleHeroSection = SectionBase & {
+  type: 'particle-hero'
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  cta?: LinkItem
+  /** Quantidade de partículas. */
+  density: 'low' | 'medium' | 'high'
+}
+
+export type VideoCardFormat ='poster' | 'story' | 'square' | 'classic' | 'wide'
 
 export type VideoCarouselItem = {
   /** Pôster (upload). Vazio = cartão de cor com o título. */
@@ -307,6 +322,7 @@ export type Section =
   | ContactSection
   | ImageCardSection
   | InteractiveHeroSection
+  | ParticleHeroSection
   | VideoCarouselSection
   | VideoPlayerSection
   | FooterSection

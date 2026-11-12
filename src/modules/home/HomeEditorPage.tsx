@@ -39,6 +39,7 @@ import {
   getBrandName,
   addImageSection,
   addInteractiveHeroSection,
+  addParticleHeroSection,
   addVideoCarouselSection,
   addVideoPlayerSection,
   isMovable,
@@ -276,6 +277,8 @@ function Editor({ initial }: { initial: HomePage }) {
                   const { doc: next, id } =
                     kind === 'interactive-hero'
                       ? addInteractiveHeroSection(doc)
+                      : kind === 'particle-hero'
+                        ? addParticleHeroSection(doc)
                       : kind === 'video-carousel'
                         ? addVideoCarouselSection(doc)
                         : kind === 'video-player'
@@ -453,7 +456,7 @@ function SectionList({
   onSelect: (section: Section) => void
   onToggle: (id: string) => void
   onMove: (id: string, direction: -1 | 1) => void
-  onAdd: (kind: 'image-card' | 'interactive-hero' | 'video-carousel' | 'video-player') => void
+  onAdd: (kind: 'image-card' | 'interactive-hero' | 'particle-hero' | 'video-carousel' | 'video-player') => void
   onRemove: (section: Section) => void
   onSetCategory: (id: string, category: string | undefined) => void
   onAddCategory: (name: string) => void
@@ -668,6 +671,7 @@ function SectionList({
               <DropdownMenuContent>
                 <DropdownMenuItem onSelect={() => onAdd('image-card')}>Cartão de imagem 3D</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onAdd('interactive-hero')}>Hero interativo (mouse e botão)</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onAdd('particle-hero')}>Hero Interativo 02 (partículas)</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onAdd('video-carousel')}>Carrossel de vídeos</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onAdd('video-player')}>Vídeo de vendas (VSL)</DropdownMenuItem>
               </DropdownMenuContent>

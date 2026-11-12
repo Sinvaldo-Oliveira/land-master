@@ -8,9 +8,11 @@ import { HIGHLIGHT_ERROR, highlightInTitle, sectionName } from './section-fields
 import {
   addImageSection,
   addInteractiveHeroSection,
+  addParticleHeroSection,
   addVideoCarouselSection,
   addVideoPlayerSection,
   backgroundWarnings,
+  sectionSurface,
   startBackground,
   startText,
   textWarnings,
@@ -146,6 +148,33 @@ describe('imagem do destaque: validação', () => {
   it('rejeita endereço de imagem que não seja https', () => {
     expect(validateDocument(heroWith({ imageUrl: 'http://x.com/a.jpg' })).some((i) => i.sectionId === 'hero')).toBe(true)
     expect(validateDocument(heroWith({ imageUrl: '' }))).toEqual([])
+  })
+})
+
+describe('nova seção: Hero Interativo 02 (partículas)', () => {
+  const doc = institucionalTemplate
+
+  it('cria "Hero Interativo 02" antes do rodapé, com conteúdo padrão válido', () => {
+    const { doc: next, id } = addParticleHeroSection(doc)
+    const index = next.sections.findIndex((x) => x.id === id)
+    expect(next.sections[index]?.type).toBe('particle-hero')
+    expect(next.sections[index + 1]?.type).toBe('site-footer')
+    expect(sectionName(next.sections[index]!)).toBe('Hero Interativo 02')
+    expect(validateDocument(next)).toEqual([])
+  })
+
+  it('rejeita densidade desconhecida e título vazio', () => {
+    const { doc: next, id } = addParticleHeroSection(doc)
+    const patch = (change: Record<string, unknown>) => ({ ...next, sections: next.sections.map((x) => (x.id === id ? ({ ...x, ...change } as Section) : x)) })
+    expect(validateDocument(patch({ density: 'extrema' })).some((issue) => issue.sectionId === id)).toBe(true)
+    expect(validateDocument(patch({ title: '' })).some((issue) => issue.sectionId === id)).toBe(true)
+  })
+
+  it('fundo padrão preto com texto branco; fundo claro personalizado gera aviso', () => {
+    expect(sectionSurface(doc.theme, { type: 'particle-hero' }).stops).toEqual(['#000000'])
+    expect(startText(doc.theme, { type: 'particle-hero' }).foreground).toBe('#ffffff')
+    expect(backgroundWarnings(doc.theme, { type: 'particle-hero', background: { mode: 'solid', colors: ['#ffffff'] } })).toHaveLength(1)
+    expect(backgroundWarnings(doc.theme, { type: 'particle-hero', background: { mode: 'solid', colors: ['#0b1324'] } })).toEqual([])
   })
 })
 

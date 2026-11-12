@@ -31,6 +31,7 @@ import {
 import {
   addImageSection,
   addInteractiveHeroSection,
+  addParticleHeroSection,
   addVideoCarouselSection,
   addVideoPlayerSection,
 } from '@/modules/home/editor-state'
@@ -101,6 +102,7 @@ const sectionFactories: Record<SectionBlockType, () => Section> = {
   ) as Record<SectionBlockType, () => Section>),
   'image-card': fromFactory(addImageSection),
   'interactive-hero': fromFactory(addInteractiveHeroSection),
+  'particle-hero': fromFactory(addParticleHeroSection),
   'video-carousel': fromFactory(addVideoCarouselSection),
   'video-player': fromFactory(addVideoPlayerSection),
 }
@@ -116,6 +118,7 @@ const sectionMeta: Record<SectionBlockType, { icon: LucideIcon; description: str
   contact: { icon: Phone, description: 'Canais de contato' },
   'image-card': { icon: AppWindow, description: 'Imagem em cartão com botão' },
   'interactive-hero': { icon: Wand, description: 'Abertura com vídeo e movimento' },
+  'particle-hero': { icon: Sparkles, description: 'Abertura com partículas que reagem ao mouse' },
   'video-carousel': { icon: Film, description: 'Vídeos em carrossel' },
   'video-player': { icon: Clapperboard, description: 'Vídeo de vendas com botão' },
   'site-footer': { icon: PanelBottom, description: 'Rodapé com links e contato' },
@@ -305,7 +308,7 @@ const primitives: BlockDefinition[] = [
 
 const sectionOrder: SectionBlockType[] = [
   'site-header', 'hero', 'features', 'about', 'steps', 'faq', 'cta', 'contact',
-  'image-card', 'interactive-hero', 'video-carousel', 'video-player', 'site-footer',
+  'image-card', 'interactive-hero', 'particle-hero', 'video-carousel', 'video-player', 'site-footer',
 ]
 
 export const blockDefinitions: BlockDefinition[] = [...primitives, ...sectionOrder.map(sectionDefinition)]

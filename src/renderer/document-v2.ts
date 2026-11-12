@@ -24,6 +24,7 @@ export const SECTION_BLOCK_TYPES = [
   'contact',
   'image-card',
   'interactive-hero',
+  'particle-hero',
   'video-carousel',
   'video-player',
   'site-footer',

@@ -56,6 +56,7 @@ export const sectionLabels: Record<Section['type'], string> = {
   'site-footer': 'Rodapé',
   'image-card': 'Imagem',
   'interactive-hero': 'Hero interativo',
+  'particle-hero': 'Hero Interativo 02',
   'video-carousel': 'Carrossel de vídeos',
   'video-player': 'Vídeo de vendas (VSL)',
 }
@@ -415,6 +416,25 @@ export const sectionFields: Record<Section['type'], FieldDef[]> = {
     { kind: 'range', key: 'buttonX', label: 'Botão: posição horizontal', min: 0, max: 1440, step: 1, unit: ' px' },
     { kind: 'range', key: 'buttonY', label: 'Botão: posição vertical', min: 0, max: 810, step: 1, unit: ' px' },
     { kind: 'range', key: 'buttonSize', label: 'Botão: tamanho', min: 30, max: 200, step: 1, unit: ' px' },
+  ],
+  'particle-hero': [
+    { kind: 'text', key: 'name', label: 'Nome no painel', max: 60 },
+    { ...backgroundField, hint: 'Tema = fundo preto. Com cor sólida ou degradê, prefira cores escuras: as partículas e o texto são claros.' } as FieldDef,
+    { ...textColorsField, hint: 'Personalizada: título (degradê do texto principal para o secundário) e subtítulo usam estas cores; Destaque 1 colore as partículas e Destaque 2, as linhas perto do mouse.' } as FieldDef,
+    { kind: 'text', key: 'eyebrow', label: 'Selo acima do título', max: 60, optional: true },
+    { kind: 'text', key: 'title', label: 'Título (grande, em degradê)', max: 60 },
+    { kind: 'textarea', key: 'subtitle', label: 'Subtítulo', max: 240, rows: 3, optional: true },
+    { kind: 'link', key: 'cta', label: 'Botão', optional: true },
+    {
+      kind: 'select',
+      key: 'density',
+      label: 'Quantidade de partículas',
+      options: [
+        { value: 'low', label: 'Pouca (mais leve)' },
+        { value: 'medium', label: 'Média' },
+        { value: 'high', label: 'Muita' },
+      ],
+    },
   ],
   'site-footer': [
     { ...backgroundField, hint: 'Tema = fundo escuro do tema. Com cor sólida ou degradê, a cor do texto e das bordas é ajustada automaticamente.' } as FieldDef,

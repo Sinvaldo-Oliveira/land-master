@@ -187,6 +187,20 @@ export function addVideoPlayerSection(doc: PageDocument, name = 'PlayVídeo-VSL-
   })
 }
 
+/** Cria o "Hero Interativo 02" (partículas que reagem ao mouse) antes do rodapé. */
+export function addParticleHeroSection(doc: PageDocument, name = 'Hero Interativo 02'): { doc: PageDocument; id: string } {
+  return insertBeforeFooter(doc, {
+    id: `hero-particulas-${Date.now().toString(36)}`,
+    type: 'particle-hero',
+    name,
+    eyebrow: 'Destaque da sua marca',
+    title: 'Sua marca',
+    subtitle: 'Uma frase curta sobre o que você entrega e por que vale a pena falar com você.',
+    cta: { label: 'Quero saber mais', href: '#contato' },
+    density: 'medium',
+  })
+}
+
 /**
  * Cria o hero interativo ("Imagem Hiro 02") antes do rodapé.
  * Posições padrão do quadro de 1440×810; mídias vazias até o usuário enviar.
@@ -259,7 +273,7 @@ export function backgroundWarnings(
   const stops = backgroundStops(section.background)
   // Com cores de texto escolhidas, quem avisa é o campo "Cor do texto" (textWarnings).
   if (!stops || validText(section.text)) return []
-  if (section.type === 'interactive-hero') {
+  if (section.type === 'interactive-hero' || section.type === 'particle-hero') {
     return worstContrast('#ffffff', stops) < 4.5
       ? ['O texto desta seção é branco: escolha cores mais escuras para ele continuar legível (vale quando não há imagem de fundo).']
       : []
@@ -285,13 +299,18 @@ export function sectionSurface(theme: SiteTheme, section: SectionLike): { stops:
   const stops = backgroundStops(section.background)
   // O hero interativo tem texto próprio (branco e cinza-azulado), qualquer que seja o fundo.
   const heroText = { foreground: '#ffffff', mutedForeground: '#cdd2e6' }
+  // O Hero Interativo 02 tem título branco→cinza e partículas na cor principal do tema escuro.
+  const particleText = { foreground: '#ffffff', mutedForeground: '#a1a1aa', accent: '#ffffff' }
   if (stops && section.background) {
     const colors = surfaceColors(isLightSurface(stops) ? theme.colors : theme.darkColors, stops)
     const css = backgroundCss(section.background, stops)
-    return { stops, css, colors: section.type === 'interactive-hero' ? { ...colors, ...heroText } : colors }
+    return { stops, css, colors: section.type === 'interactive-hero' ? { ...colors, ...heroText } : section.type === 'particle-hero' ? { ...colors, ...particleText } : colors }
   }
   if (section.type === 'interactive-hero') {
     return { stops: ['#02040d'], css: '#02040d', colors: { ...theme.darkColors, ...heroText } }
+  }
+  if (section.type === 'particle-hero') {
+    return { stops: ['#000000'], css: '#000000', colors: { ...theme.darkColors, ...particleText } }
   }
   const colors = section.type === 'site-footer' || section.tone === 'dark' ? theme.darkColors : theme.colors
   const bg = section.tone === 'muted' ? colors.muted : colors.background
@@ -333,7 +352,7 @@ export function textWarnings(theme: SiteTheme, section: SectionLike): string[] {
   check(text.foreground, 4.5, 'Títulos e texto principal')
   check(text.muted, 4.5, 'Texto secundário')
   // Na chamada para ação e no brilho do hero interativo os destaques são decorativos.
-  if (section.type !== 'cta' && section.type !== 'interactive-hero') {
+  if (section.type !== 'cta' && section.type !== 'interactive-hero' && section.type !== 'particle-hero') {
     check(text.primary, 3, 'Destaque 1')
     check(text.accent, 3, 'Destaque 2')
   }

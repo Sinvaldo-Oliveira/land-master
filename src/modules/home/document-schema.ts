@@ -268,6 +268,15 @@ export const sectionSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     ...base,
+    type: z.literal('particle-hero'),
+    eyebrow: optionalText('Selo', 60),
+    title: text('Título', 60),
+    subtitle: optionalText('Subtítulo', 240),
+    cta: link.optional(),
+    density: z.enum(['low', 'medium', 'high']),
+  }),
+  z.object({
+    ...base,
     type: z.literal('site-footer'),
     brand,
     logoUrl: httpsOrEmpty('Logo do rodapé').optional(),

@@ -18,6 +18,7 @@ import './site.css'
 const InteractiveHero = lazy(() => import('./sections/InteractiveHero'))
 const VideoCarousel = lazy(() => import('./sections/VideoCarousel'))
 const VideoPlayer = lazy(() => import('./sections/VideoPlayer'))
+const ParticleHero = lazy(() => import('./sections/ParticleHero'))
 const ImageCard = lazy(() => import('./sections/ImageCard').then((module) => ({ default: module.ImageCard })))
 
 /**
@@ -92,6 +93,12 @@ export function SectionView({ section, brandName }: { section: Section; brandNam
       return (
         <Suspense fallback={<div aria-hidden="true" className="min-h-[640px] bg-site-background" />}>
           <VideoPlayer section={section} />
+        </Suspense>
+      )
+    case 'particle-hero':
+      return (
+        <Suspense fallback={<div aria-hidden="true" className="h-svh min-h-[560px] bg-black" />}>
+          <ParticleHero section={section} />
         </Suspense>
       )
     case 'interactive-hero':

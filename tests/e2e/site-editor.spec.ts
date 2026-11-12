@@ -820,3 +820,46 @@ test('lista de seções: cards cabem na coluna, ícones visíveis e sem rolagem 
   })
   expect(overflowX).toBeLessThanOrEqual(1)
 })
+
+test('Hero Interativo 02: cria pela lista de seções, desenha partículas e edita textos e botão', async ({ page }, testInfo) => {
+  await signInAs(page, 'admin')
+  await fakeSiteBackend(page)
+  await page.goto('/admin/site')
+  await page.getByRole('button', { name: 'Criar a partir do modelo Institucional' }).click()
+
+  await page.getByRole('button', { name: 'Nova seção' }).click()
+  await page.getByRole('menuitem', { name: 'Hero Interativo 02 (partículas)' }).click()
+  await expect(page.getByRole('heading', { level: 2, name: 'Hero Interativo 02' })).toBeVisible()
+
+  const frame = preview(page)
+  const stage = frame.locator('section.ph-stage')
+  await stage.scrollIntoViewIfNeeded()
+  await expect(frame.getByRole('heading', { level: 2, name: 'Sua marca' })).toBeVisible()
+  await expect(frame.getByRole('link', { name: /Quero saber mais/ })).toHaveAttribute('href', '#contato')
+
+  // O canvas cobre a seção e tem partículas desenhadas (pixels não transparentes).
+  const canvas = stage.locator('canvas')
+  await expect.poll(() => canvas.evaluate((el: HTMLCanvasElement) => el.width)).toBeGreaterThan(0)
+  await expect
+    .poll(() =>
+      canvas.evaluate((el: HTMLCanvasElement) => {
+        const data = el.getContext('2d')?.getImageData(0, 0, el.width, el.height).data ?? []
+        let painted = 0
+        for (let i = 3; i < data.length; i += 4) if ((data[i] ?? 0) > 0) painted++
+        return painted
+      }),
+    )
+    .toBeGreaterThan(100)
+
+  // Textos, botão e densidade editáveis com reflexo na prévia.
+  await page.getByLabel(/^Título .grande/).fill('Leila Marques')
+  await expect(frame.getByRole('heading', { level: 2, name: 'Leila Marques' })).toBeVisible()
+  await page.getByRole('textbox', { name: 'Texto do botão' }).fill('Agendar consulta')
+  await expect(frame.getByRole('link', { name: /Agendar consulta/ })).toBeVisible()
+  await page.getByRole('combobox', { name: 'Quantidade de partículas' }).click()
+  await page.getByRole('option', { name: 'Muita' }).click()
+  await expect(page.getByText('Alterações não salvas')).toBeVisible()
+
+  await page.waitForTimeout(1800) // entrada em sequência (~1,5 s)
+  await page.locator('iframe[title="Pré-visualização do site"]').screenshot({ path: testInfo.outputPath('hero-interativo-02.png') })
+})
